@@ -91,10 +91,10 @@ class Agent:
 
         log.debug("Spawning: %s", " ".join(cmd[:6]) + "...")
 
-        # Strip ANTHROPIC_API_KEY from env so Claude Code uses OAuth
-        # (Max subscription) instead of the API key
+        # Strip all ANTHROPIC_* env vars so Claude Code uses OAuth
+        # (Max subscription) instead of trying API key auth
         import os
-        env = {k: v for k, v in os.environ.items() if k != "ANTHROPIC_API_KEY"}
+        env = {k: v for k, v in os.environ.items() if not k.startswith("ANTHROPIC_")}
 
         proc = await asyncio.create_subprocess_exec(
             *cmd,
