@@ -4,22 +4,46 @@ import io
 import logging
 import threading
 import wave
+from pathlib import Path
 
 import numpy as np
 import sounddevice as sd
 
 log = logging.getLogger(__name__)
 
+# Default location where install.sh downloads piper voice models
+_VOICES_DIR = Path.home() / ".local" / "share" / "piper-voices"
+
+
+def _resolve_voice_path(voice: str) -> str:
+    """Resolve a voice name or path to an .onnx model file path.
+
+    Accepts either:
+    - A full path to an .onnx file (returned as-is)
+    - A voice name like "en_US-ryan-medium" (resolved to ~/.local/share/piper-voices/)
+    """
+    path = Path(voice)
+    if path.suffix == ".onnx" and path.exists():
+        return str(path)
+
+    # Try the standard voices directory
+    candidate = _VOICES_DIR / f"{voice}.onnx"
+    if candidate.exists():
+        return str(candidate)
+
+    # Fall through — let PiperVoice.load() raise a clear error
+    return str(candidate)
+
 
 class Speaker:
     """Text-to-speech via piper-tts with sounddevice playback."""
 
     def __init__(self, voice: str = "en_US-ryan-medium", speed: float = 1.0):
-        self._voice = voice
+        self._voice_path = _resolve_voice_path(voice)
         self._speed = speed
         self._stop_event = threading.Event()
         self._playing = False
-        log.info("TTS initialized with voice=%s speed=%.1f", voice, speed)
+        log.info("TTS initialized with voice=%s path=%s", voice, self._voice_path)
 
     def speak(self, text: str) -> None:
         """Synthesize and play text. Blocks until playback completes or stop() is called."""
@@ -47,7 +71,7 @@ class Speaker:
         """Run piper-tts synthesis, return (audio_array, sample_rate)."""
         from piper import PiperVoice
 
-        voice = PiperVoice.load(self._voice)
+        voice = PiperVoice.load(self._voice_path)
         wav_buffer = io.BytesIO()
 
         with wave.open(wav_buffer, "wb") as wav_file:

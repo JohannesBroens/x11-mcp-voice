@@ -58,7 +58,7 @@ class WakeWordDetector:
 
         # Download/load model
         openwakeword.utils.download_models([self._model_name])
-        oww_model = Model(wakeword_models=[self._model_name])
+        oww_model = Model(wakeword_models=[self._model_name], inference_framework="onnx")
 
         try:
             with sd.InputStream(

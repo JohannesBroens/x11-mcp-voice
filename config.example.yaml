@@ -1,0 +1,33 @@
+# x11-mcp-voice configuration
+# Copy to config.yaml and edit as needed.
+# All values shown are defaults — only override what you want to change.
+
+wake_word:
+  model: "hey_jarvis"           # openwakeword model name
+  threshold: 0.7                # detection confidence (0.0-1.0)
+
+stt:
+  model: "nvidia/parakeet-tdt-0.6b-v2"
+  device: "cuda"                # "cuda" or "cpu"
+
+tts:
+  voice: "en_US-ryan-medium"    # piper voice model name (must be downloaded)
+  speed: 1.0
+
+media:
+  auto_pause: true              # pause media on wake, resume when done
+  player: null                  # null = any active MPRIS player, or e.g. "youtube-music"
+
+agent:
+  model: "claude-sonnet-4-6"    # Claude model for API calls
+  x11_mcp_command: "~/Documents/git/x11-mcp/.venv/bin/python"
+  x11_mcp_args: ["-m", "x11_mcp"]
+
+audio:
+  sample_rate: 16000            # Hz (don't change — Parakeet expects 16kHz)
+  silence_threshold_ms: 500     # ms of silence to stop recording
+  max_recording_s: 30           # max seconds per utterance
+
+conversation:
+  style: "auto"                 # "auto" | "confirmations" | "walkie_talkie"
+  followup_timeout_s: 3.0       # seconds to wait for follow-up speech
