@@ -78,8 +78,17 @@ fi
 # ─────────────────────────────────────────────────
 if [[ -z "${ANTHROPIC_API_KEY:-}" ]]; then
     warn "ANTHROPIC_API_KEY not set. You'll need it to run the daemon."
-    echo "  Set it with: export ANTHROPIC_API_KEY=sk-ant-..."
-    echo "  Add to ~/.bashrc or ~/.zshrc for persistence."
+    echo ""
+    echo "  1. Get your key at: https://console.anthropic.com/settings/keys"
+    echo "  2. Then run:"
+    echo "     echo 'export ANTHROPIC_API_KEY=sk-ant-...' >> ~/.bashrc"
+    echo "     source ~/.bashrc"
+    echo ""
+    # Open the key page in the browser so they can grab it right now
+    if command -v xdg-open &>/dev/null; then
+        info "Opening Anthropic console in your browser..."
+        xdg-open "https://console.anthropic.com/settings/keys" 2>/dev/null &
+    fi
 else
     ok "ANTHROPIC_API_KEY is set"
 fi
