@@ -8,8 +8,6 @@ version = "0.1.0"
 description = "Voice-activated desktop automation via wake word + Parakeet STT + Claude + x11-mcp + TTS"
 requires-python = ">=3.10"
 dependencies = [
-    "anthropic>=0.40.0",
-    "mcp>=1.0.0",
     "openwakeword>=0.6.0",
     "onnxruntime>=1.15.0",
     "sounddevice>=0.5.0",

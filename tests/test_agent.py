@@ -1,5 +1,6 @@
+import json
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 from x11_mcp_voice.agent import Agent
 from x11_mcp_voice.config import AgentConfig, ConversationConfig
@@ -7,11 +8,7 @@ from x11_mcp_voice.config import AgentConfig, ConversationConfig
 
 @pytest.fixture
 def agent_config():
-    return AgentConfig(
-        model="claude-sonnet-4-6",
-        x11_mcp_command="/usr/bin/python",
-        x11_mcp_args=["-m", "x11_mcp"],
-    )
+    return AgentConfig(model="claude-sonnet-4-6")
 
 
 @pytest.fixture
@@ -23,76 +20,111 @@ def test_agent_init(agent_config, conversation_config):
     agent = Agent(agent_config, conversation_config)
     assert agent._messages == []
     assert agent._model == "claude-sonnet-4-6"
+    assert agent._session_id is None
 
 
 def test_agent_reset(agent_config, conversation_config):
     agent = Agent(agent_config, conversation_config)
     agent._messages = [{"role": "user", "content": "hello"}]
+    agent._session_id = "some-session-id"
     agent.reset()
     assert agent._messages == []
+    assert agent._session_id is None
+
+
+def _mock_subprocess(stdout_lines: list[str], returncode: int = 0):
+    """Create a mock for asyncio.create_subprocess_exec."""
+    stdout_data = "\n".join(stdout_lines).encode() + b"\n"
+
+    mock_proc = AsyncMock()
+    mock_proc.returncode = returncode
+    mock_proc.wait = AsyncMock()
+
+    # Simulate readline() returning one line at a time, then empty
+    lines = [line.encode() + b"\n" for line in stdout_lines] + [b""]
+    mock_proc.stdout.readline = AsyncMock(side_effect=lines)
+    mock_proc.stderr.read = AsyncMock(return_value=b"")
+
+    return mock_proc
 
 
 @pytest.mark.asyncio
 async def test_agent_send_text_response(agent_config, conversation_config):
     agent = Agent(agent_config, conversation_config)
 
-    mock_text_block = MagicMock()
-    mock_text_block.type = "text"
-    mock_text_block.text = "Hello! How can I help?"
+    result_event = json.dumps({
+        "type": "result",
+        "subtype": "success",
+        "result": "Hello! How can I help?",
+        "session_id": "sess-123",
+    })
 
-    mock_response = MagicMock()
-    mock_response.content = [mock_text_block]
-    mock_response.stop_reason = "end_turn"
+    mock_proc = _mock_subprocess([result_event])
 
-    with patch.object(agent, "_client") as mock_client:
-        mock_client.messages.create = MagicMock(return_value=mock_response)
-        agent._tools = []  # No MCP tools for this test
-
+    with patch("x11_mcp_voice.agent.asyncio.create_subprocess_exec", return_value=mock_proc):
         result = await agent.send("hello")
 
     assert result == "Hello! How can I help?"
     assert len(agent._messages) == 2  # user + assistant
+    assert agent._session_id == "sess-123"  # captured for multi-turn
 
 
 @pytest.mark.asyncio
-async def test_agent_send_with_tool_use(agent_config, conversation_config):
+async def test_agent_send_walkie_talkie_no_session(agent_config):
+    """In walkie_talkie mode, session_id should not be stored."""
+    conv_config = ConversationConfig(style="walkie_talkie")
+    agent = Agent(agent_config, conv_config)
+
+    result_event = json.dumps({
+        "type": "result",
+        "subtype": "success",
+        "result": "Done.",
+        "session_id": "sess-456",
+    })
+
+    mock_proc = _mock_subprocess([result_event])
+
+    with patch("x11_mcp_voice.agent.asyncio.create_subprocess_exec", return_value=mock_proc):
+        result = await agent.send("open steam")
+
+    assert result == "Done."
+    assert agent._session_id is None  # walkie_talkie doesn't persist sessions
+
+
+@pytest.mark.asyncio
+async def test_agent_send_resumes_session(agent_config, conversation_config):
+    """Second send() should pass --resume with the session_id."""
     agent = Agent(agent_config, conversation_config)
-    agent._tools = []
-    agent._mcp_session = AsyncMock()
+    agent._session_id = "existing-session"
 
-    # First response: tool use
-    tool_block = MagicMock()
-    tool_block.type = "tool_use"
-    tool_block.id = "tool_123"
-    tool_block.name = "screenshot"
-    tool_block.input = {}
+    result_event = json.dumps({
+        "type": "result",
+        "subtype": "success",
+        "result": "Yes, I can do that.",
+        "session_id": "existing-session",
+    })
 
-    response1 = MagicMock()
-    response1.content = [tool_block]
-    response1.stop_reason = "tool_use"
+    mock_proc = _mock_subprocess([result_event])
 
-    # Tool result from MCP
-    tool_result_content = MagicMock()
-    tool_result_content.type = "text"
-    tool_result_content.text = "screenshot taken"
+    with patch("x11_mcp_voice.agent.asyncio.create_subprocess_exec", return_value=mock_proc) as mock_exec:
+        result = await agent.send("yes please")
 
-    mcp_result = MagicMock()
-    mcp_result.content = [tool_result_content]
-    mcp_result.isError = False
-    agent._mcp_session.call_tool = AsyncMock(return_value=mcp_result)
+    assert result == "Yes, I can do that."
+    # Verify --resume was passed
+    call_args = mock_exec.call_args[0]
+    assert "--resume" in call_args
+    assert "existing-session" in call_args
 
-    # Second response: text
-    text_block = MagicMock()
-    text_block.type = "text"
-    text_block.text = "I took a screenshot."
 
-    response2 = MagicMock()
-    response2.content = [text_block]
-    response2.stop_reason = "end_turn"
+@pytest.mark.asyncio
+async def test_agent_send_error_fallback(agent_config, conversation_config):
+    """If Claude Code exits non-zero with no result, return error message."""
+    agent = Agent(agent_config, conversation_config)
 
-    with patch.object(agent, "_client") as mock_client:
-        mock_client.messages.create = MagicMock(side_effect=[response1, response2])
-        result = await agent.send("take a screenshot")
+    mock_proc = _mock_subprocess([], returncode=1)
+    mock_proc.stderr.read = AsyncMock(return_value=b"something went wrong")
 
-    assert result == "I took a screenshot."
-    agent._mcp_session.call_tool.assert_called_once_with(name="screenshot", arguments={})
+    with patch("x11_mcp_voice.agent.asyncio.create_subprocess_exec", return_value=mock_proc):
+        result = await agent.send("do something")
+
+    assert result == "I couldn't process that. Try again."

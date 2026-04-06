@@ -19,9 +19,7 @@ media:
   player: null                  # null = any active MPRIS player, or e.g. "youtube-music"
 
 agent:
-  model: "claude-sonnet-4-6"    # Claude model for API calls
-  x11_mcp_command: "~/Documents/git/x11-mcp/.venv/bin/python"
-  x11_mcp_args: ["-m", "x11_mcp"]
+  model: "claude-sonnet-4-6"    # Claude model (uses your Claude Code subscription)
 
 audio:
   sample_rate: 16000            # Hz (don't change — Parakeet expects 16kHz)

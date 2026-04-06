@@ -74,23 +74,14 @@ else
 fi
 
 # ─────────────────────────────────────────────────
-# Step 3: Check ANTHROPIC_API_KEY
+# Step 3: Check Claude Code is installed
 # ─────────────────────────────────────────────────
-if [[ -z "${ANTHROPIC_API_KEY:-}" ]]; then
-    warn "ANTHROPIC_API_KEY not set. You'll need it to run the daemon."
-    echo ""
-    echo "  1. Get your key at: https://console.anthropic.com/settings/keys"
-    echo "  2. Then run:"
-    echo "     echo 'export ANTHROPIC_API_KEY=sk-ant-...' >> ~/.bashrc"
-    echo "     source ~/.bashrc"
-    echo ""
-    # Open the key page in the browser so they can grab it right now
-    if command -v xdg-open &>/dev/null; then
-        info "Opening Anthropic console in your browser..."
-        xdg-open "https://console.anthropic.com/settings/keys" 2>/dev/null &
-    fi
+if command -v claude &>/dev/null; then
+    ok "Claude Code found: $(claude --version 2>/dev/null || echo 'installed')"
 else
-    ok "ANTHROPIC_API_KEY is set"
+    fail "Claude Code not found. The daemon uses Claude Code as its AI backend."
+    echo "  Install Claude Code from: https://claude.ai/download"
+    exit 1
 fi
 
 # ─────────────────────────────────────────────────
@@ -111,6 +102,11 @@ else
     echo "    cd $X11_MCP_DIR && python3 -m venv .venv && .venv/bin/pip install -e ."
     exit 1
 fi
+
+# Register x11-mcp as a Claude Code MCP server (user-global)
+info "Registering x11-mcp with Claude Code..."
+claude mcp add --scope user x11-mcp "$X11_MCP_PYTHON" -- -m x11_mcp 2>/dev/null || true
+ok "x11-mcp registered as MCP server"
 
 # ─────────────────────────────────────────────────
 # Step 5: Create Python venv + install pip deps
@@ -135,7 +131,7 @@ pip install --no-deps openwakeword -q
 
 info "Installing x11-mcp-voice and remaining dependencies (torch/NeMo are large)..."
 pip install -e "$SCRIPT_DIR[dev]" --no-deps 2>&1 | tail -5
-pip install anthropic "mcp>=1.0.0" onnxruntime "sounddevice>=0.5.0" "numpy>=1.24.0" PyYAML \
+pip install onnxruntime "sounddevice>=0.5.0" "numpy>=1.24.0" PyYAML \
     "piper-tts>=1.2.0" "nemo_toolkit[asr]>=2.0.0" "torch>=2.0.0" "torchaudio>=2.0.0" \
     "pytest>=7.0.0" "pytest-asyncio>=0.23.0" 2>&1 | tail -5
 

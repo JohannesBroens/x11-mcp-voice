@@ -33,8 +33,6 @@ class MediaConfig:
 @dataclass
 class AgentConfig:
     model: str = "claude-sonnet-4-6"
-    x11_mcp_command: str = "~/Documents/git/x11-mcp/.venv/bin/python"
-    x11_mcp_args: list[str] = field(default_factory=lambda: ["-m", "x11_mcp"])
 
 
 @dataclass
