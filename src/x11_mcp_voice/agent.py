@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import re
 
 from x11_mcp_voice.config import AgentConfig, ConversationConfig
 
@@ -35,6 +36,24 @@ _STYLE_INSTRUCTIONS = {
     ),
     "walkie_talkie": "Each message from the user is a standalone command. Be direct and concise.",
 }
+
+
+def _clean_for_speech(text: str) -> str:
+    """Strip markdown formatting and emoji so TTS reads natural text."""
+    # Remove markdown bold/italic
+    text = re.sub(r'\*{1,3}(.+?)\*{1,3}', r'\1', text)
+    # Remove markdown links [text](url) -> text
+    text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', text)
+    # Remove backticks
+    text = text.replace('`', '')
+    # Remove emoji (Unicode emoji ranges)
+    text = re.sub(
+        r'[\U0001F300-\U0001FAFF\U00002702-\U000027B0\U0000FE00-\U0000FE0F\U0000200D]',
+        '', text,
+    )
+    # Collapse multiple spaces
+    text = re.sub(r'  +', ' ', text)
+    return text.strip()
 
 
 class Agent:
@@ -79,7 +98,7 @@ class Agent:
             "--output-format", "stream-json",
             "--model", self._model,
             "--system-prompt", self._system,
-            "--allowedTools", "*",  # auto-approve all tools (Bash, x11-mcp, etc.)
+            "--permission-mode", "bypassPermissions",
         ]
 
         if self._session_id is not None:
@@ -161,4 +180,4 @@ class Agent:
             self._session_id = session_id
 
         self._messages.append({"role": "assistant", "content": result_text})
-        return result_text
+        return _clean_for_speech(result_text)
