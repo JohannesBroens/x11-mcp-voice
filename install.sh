@@ -136,7 +136,7 @@ pip install --no-deps openwakeword -q
 info "Installing x11-mcp-voice and remaining dependencies (torch/NeMo are large)..."
 pip install -e "$SCRIPT_DIR[dev]" --no-deps 2>&1 | tail -5
 pip install anthropic "mcp>=1.0.0" onnxruntime "sounddevice>=0.5.0" "numpy>=1.24.0" PyYAML \
-    "piper-tts>=1.2.0" "nemo_toolkit[asr]>=2.0.0" "torch>=2.0.0" \
+    "piper-tts>=1.2.0" "nemo_toolkit[asr]>=2.0.0" "torch>=2.0.0" "torchaudio>=2.0.0" \
     "pytest>=7.0.0" "pytest-asyncio>=0.23.0" 2>&1 | tail -5
 
 ok "Python dependencies installed"

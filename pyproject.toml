@@ -18,6 +18,7 @@ dependencies = [
     "piper-tts>=1.2.0",
     "nemo_toolkit[asr]>=2.0.0",
     "torch>=2.0.0",
+    "torchaudio>=2.0.0",
 ]
 
 [project.optional-dependencies]
