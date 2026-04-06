@@ -128,6 +128,10 @@ class Daemon:
             if response is None:
                 break
 
+            # Pause media before speaking so TTS is audible
+            if self._config.media.auto_pause:
+                self._media.pause()
+
             # Speak response
             self._state = State.SPEAKING
             log.info("State: SPEAKING (%d chars)", len(response))
@@ -136,6 +140,10 @@ class Daemon:
             # Check if we should listen for follow-up
             if self._config.conversation.style == "walkie_talkie":
                 break
+
+            # Pause media during follow-up listening so mic doesn't pick up music
+            if self._config.media.auto_pause:
+                self._media.pause()
 
             # Wait for follow-up speech (VAD-based)
             self._state = State.LISTENING
