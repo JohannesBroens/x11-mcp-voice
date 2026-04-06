@@ -1,0 +1,29 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "x11-mcp-voice"
+version = "0.1.0"
+description = "Voice-activated desktop automation via wake word + Parakeet STT + Claude + x11-mcp + TTS"
+requires-python = ">=3.10"
+dependencies = [
+    "anthropic>=0.40.0",
+    "mcp>=1.0.0",
+    "openwakeword>=0.6.0",
+    "sounddevice>=0.5.0",
+    "numpy>=1.24.0",
+    "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+cuda = ["nemo_toolkit[asr]>=2.0.0"]
+tts = ["piper-tts>=1.2.0"]
+dev = ["pytest>=7.0.0"]
+all = ["x11-mcp-voice[cuda,tts,dev]"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/x11_mcp_voice"]
+
+[tool.pytest.ini_options]
+markers = ["audio: requires microphone/speaker hardware"]
