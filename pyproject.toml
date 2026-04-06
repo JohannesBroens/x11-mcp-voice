@@ -14,16 +14,17 @@ dependencies = [
     "sounddevice>=0.5.0",
     "numpy>=1.24.0",
     "PyYAML>=6.0",
+    "piper-tts>=1.2.0",
+    "nemo_toolkit[asr]>=2.0.0",
+    "torch>=2.0.0",
 ]
 
 [project.optional-dependencies]
-cuda = ["nemo_toolkit[asr]>=2.0.0"]
-tts = ["piper-tts>=1.2.0"]
-dev = ["pytest>=7.0.0"]
-all = ["x11-mcp-voice[cuda,tts,dev]"]
+dev = ["pytest>=7.0.0", "pytest-asyncio>=0.23.0"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/x11_mcp_voice"]
 
 [tool.pytest.ini_options]
 markers = ["audio: requires microphone/speaker hardware"]
+asyncio_mode = "auto"
