@@ -74,14 +74,15 @@ class Speaker:
         voice = PiperVoice.load(self._voice_path)
         wav_buffer = io.BytesIO()
 
-        with wave.open(wav_buffer, "wb") as wav_file:
-            voice.synthesize(text, wav_file)
+        # synthesize_wav() sets wav format and writes audio data
+        wav_file = wave.open(wav_buffer, "wb")
+        voice.synthesize_wav(text, wav_file)
+        wav_file.close()
 
         wav_buffer.seek(0)
-        with wave.open(wav_buffer, "rb") as wav_file:
-            sample_rate = wav_file.getframerate()
-            n_frames = wav_file.getnframes()
-            raw = wav_file.readframes(n_frames)
+        with wave.open(wav_buffer, "rb") as reader:
+            sample_rate = reader.getframerate()
+            raw = reader.readframes(reader.getnframes())
             audio = np.frombuffer(raw, dtype=np.int16).astype(np.float32) / 32768.0
 
         return audio, sample_rate
