@@ -101,10 +101,10 @@ class Agent:
             "--permission-mode", "bypassPermissions",
         ]
 
-        if self._session_id is not None:
-            cmd.extend(["--resume", self._session_id])
-        else:
-            cmd.append("--no-session-persistence")
+        # Each invocation is a fresh session. --resume with --no-session-persistence
+        # doesn't work reliably, so we always start fresh. Multi-turn context is
+        # provided via the system prompt instead.
+        cmd.append("--no-session-persistence")
 
         # User message as positional argument
         cmd.append(text)

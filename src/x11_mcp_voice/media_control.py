@@ -14,9 +14,11 @@ class MediaController:
         self._we_paused = False
         self.available = True
 
-    def _run(self, *args: str) -> subprocess.CompletedProcess:
+    def _run(self, *args: str, all_players: bool = False) -> subprocess.CompletedProcess:
         cmd = ["playerctl"]
-        if self._player:
+        if all_players:
+            cmd.append("--all-players")
+        elif self._player:
             cmd.extend(["--player", self._player])
         cmd.extend(args)
         return subprocess.run(cmd, capture_output=True, text=True, timeout=5)
@@ -42,7 +44,7 @@ class MediaController:
             self._we_paused = False
             return False
         try:
-            self._run("pause")
+            self._run("pause", all_players=True)
             self._we_paused = True
             return True
         except FileNotFoundError:
