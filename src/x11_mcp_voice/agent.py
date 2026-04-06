@@ -79,6 +79,7 @@ class Agent:
             "--output-format", "stream-json",
             "--model", self._model,
             "--system-prompt", self._system,
+            "--allowedTools", "mcp__x11-mcp__*",  # auto-approve all x11-mcp tools
         ]
 
         if self._session_id is not None:
@@ -94,7 +95,10 @@ class Agent:
         # Strip all ANTHROPIC_* env vars so Claude Code uses OAuth
         # (Max subscription) instead of trying API key auth
         import os
+        stripped = [k for k in os.environ if k.startswith("ANTHROPIC_")]
         env = {k: v for k, v in os.environ.items() if not k.startswith("ANTHROPIC_")}
+        if stripped:
+            log.info("Stripped env vars for OAuth: %s", stripped)
 
         proc = await asyncio.create_subprocess_exec(
             *cmd,
