@@ -34,10 +34,6 @@ class Transcriber:
         if audio.dtype != np.float32:
             audio = audio.astype(np.float32)
 
-        # NeMo expects [batch, time] tensor
-        signal = torch.tensor(audio).unsqueeze(0).to(self._model.device)
-        signal_len = torch.tensor([audio.shape[0]]).to(self._model.device)
-
         with torch.no_grad():
             hypotheses = self._model.transcribe(audio=[audio], batch_size=1)
 

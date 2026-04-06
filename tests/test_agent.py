@@ -92,8 +92,8 @@ async def test_agent_send_walkie_talkie_no_session(agent_config):
 
 
 @pytest.mark.asyncio
-async def test_agent_send_resumes_session(agent_config, conversation_config):
-    """Second send() should pass --resume with the session_id."""
+async def test_agent_send_always_fresh_session(agent_config, conversation_config):
+    """Each invocation is stateless — no --resume flag, always --no-session-persistence."""
     agent = Agent(agent_config, conversation_config)
     agent._session_id = "existing-session"
 
@@ -101,7 +101,7 @@ async def test_agent_send_resumes_session(agent_config, conversation_config):
         "type": "result",
         "subtype": "success",
         "result": "Yes, I can do that.",
-        "session_id": "existing-session",
+        "session_id": "new-session",
     })
 
     mock_proc = _mock_subprocess([result_event])
@@ -110,10 +110,9 @@ async def test_agent_send_resumes_session(agent_config, conversation_config):
         result = await agent.send("yes please")
 
     assert result == "Yes, I can do that."
-    # Verify --resume was passed
     call_args = mock_exec.call_args[0]
-    assert "--resume" in call_args
-    assert "existing-session" in call_args
+    assert "--no-session-persistence" in call_args
+    assert "--resume" not in call_args
 
 
 @pytest.mark.asyncio

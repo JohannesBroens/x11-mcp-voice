@@ -12,7 +12,7 @@
 # Prerequisites:
 #   - Ubuntu 24.04 LTS (Python 3.12 works — we use ONNX instead of tflite)
 #   - NVIDIA GPU with drivers installed (nvidia-smi should work)
-#   - ANTHROPIC_API_KEY environment variable set
+#   - Claude Code installed and authenticated (claude.ai/download)
 #   - x11-mcp cloned and set up at ~/Documents/git/x11-mcp/
 #
 set -euo pipefail

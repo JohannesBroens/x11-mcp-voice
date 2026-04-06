@@ -10,3 +10,4 @@ build/
 models/
 .worktrees/
 config.yaml
+.claude/
