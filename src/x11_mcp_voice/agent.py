@@ -79,7 +79,7 @@ class Agent:
             "--output-format", "stream-json",
             "--model", self._model,
             "--system-prompt", self._system,
-            "--allowedTools", "mcp__x11-mcp__*",  # auto-approve all x11-mcp tools
+            "--allowedTools", "*",  # auto-approve all tools (Bash, x11-mcp, etc.)
         ]
 
         if self._session_id is not None:
@@ -125,6 +125,7 @@ class Agent:
                 continue
 
             event_type = event.get("type", "")
+            event_subtype = event.get("subtype", "")
 
             if event_type == "assistant":
                 message = event.get("message", {})
@@ -135,13 +136,24 @@ class Agent:
             elif event_type == "result":
                 result_text = event.get("result", "")
                 session_id = event.get("session_id")
-                log.info("Response: %s", result_text[:200])
+                is_error = event.get("is_error", False)
+                if is_error:
+                    log.error("Claude error result: %s", result_text[:500])
+                else:
+                    log.info("Response: %s", result_text[:200])
 
+            elif event_type == "error":
+                log.error("Claude stream error: %s", str(event)[:500])
+
+            elif event_type != "system":
+                log.debug("Event: type=%s subtype=%s", event_type, event_subtype)
+
+        stderr_data = await proc.stderr.read()
         await proc.wait()
 
         if proc.returncode != 0:
-            stderr = (await proc.stderr.read()).decode().strip()
-            log.error("Claude Code exited with %d: %s", proc.returncode, stderr[:500])
+            stderr = stderr_data.decode().strip()
+            log.error("Claude Code exited with %d: stderr=%s", proc.returncode, stderr[:500] if stderr else "(empty)")
             if not result_text:
                 result_text = "I couldn't process that. Try again."
 
