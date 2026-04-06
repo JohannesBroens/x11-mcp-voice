@@ -277,6 +277,9 @@ def _check_vad(model, audio_chunk: np.ndarray) -> bool:
     tensor = torch.from_numpy(audio_chunk).float()
     if tensor.dim() > 1:
         tensor = tensor.squeeze()
-    # Silero VAD expects 16kHz, returns probability
+    # Silero VAD requires exactly 512 samples at 16kHz.
+    # Our chunks are 1280 samples (80ms) — check the last 512.
+    if tensor.shape[0] > 512:
+        tensor = tensor[-512:]
     speech_prob = model(tensor, 16000).item()
     return speech_prob > 0.5
