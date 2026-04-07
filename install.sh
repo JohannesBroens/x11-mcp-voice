@@ -133,7 +133,7 @@ info "Installing x11-mcp-voice and remaining dependencies (torch/NeMo are large)
 pip install -e "$SCRIPT_DIR[dev]" --no-deps 2>&1 | tail -5
 pip install onnxruntime "sounddevice>=0.5.0" "numpy>=1.24.0" PyYAML \
     "piper-tts>=1.2.0" "nemo_toolkit[asr]>=2.0.0" "torch>=2.0.0" "torchaudio>=2.0.0" \
-    "pytest>=7.0.0" "pytest-asyncio>=0.23.0" 2>&1 | tail -5
+    "pytest>=7.0.0" "pytest-asyncio>=0.23.0" "pystray>=0.19.0" "Pillow>=10.0.0" 2>&1 | tail -5
 
 ok "Python dependencies installed"
 
@@ -234,7 +234,47 @@ else
 fi
 
 # ─────────────────────────────────────────────────
-# Step 12: Verify hardware
+# Step 12: Install Nox service
+# ─────────────────────────────────────────────────
+info "Installing Nox service..."
+
+SYSTEMD_DIR="$HOME/.config/systemd/user"
+BIN_DIR="$HOME/.local/bin"
+
+mkdir -p "$SYSTEMD_DIR" "$BIN_DIR"
+
+# Install systemd units
+cp "$SCRIPT_DIR/systemd/nox-daemon.service" "$SYSTEMD_DIR/"
+cp "$SCRIPT_DIR/systemd/nox-tray.service" "$SYSTEMD_DIR/"
+systemctl --user daemon-reload
+
+# Install CLI
+cp "$SCRIPT_DIR/bin/nox" "$BIN_DIR/nox"
+chmod +x "$BIN_DIR/nox"
+
+# Render icons (needs cairosvg)
+info "Rendering Nox icons..."
+pip install cairosvg -q 2>&1 | tail -1
+python "$SCRIPT_DIR/scripts/render-icons.py"
+
+# Check config for autostart preference
+AUTOSTART=$(python -c "
+from x11_mcp_voice.config import load_config
+c = load_config()
+print('true' if c.service.autostart else 'false')
+" 2>/dev/null || echo "false")
+
+if [[ "$AUTOSTART" == "true" ]]; then
+    systemctl --user enable nox-daemon nox-tray
+    ok "Nox enabled for autostart"
+else
+    info "Autostart disabled. Enable with: nox install"
+fi
+
+ok "Nox service installed"
+
+# ─────────────────────────────────────────────────
+# Step 13: Verify hardware
 # ─────────────────────────────────────────────────
 info "Checking audio hardware..."
 
@@ -257,11 +297,17 @@ fi
 # ─────────────────────────────────────────────────
 echo ""
 echo -e "${GREEN}════════════════════════════════════════════════════${NC}"
-echo -e "${GREEN}  x11-mcp-voice installation complete!${NC}"
+echo -e "${GREEN}  Nox installation complete!${NC}"
 echo -e "${GREEN}════════════════════════════════════════════════════${NC}"
 echo ""
-echo "  To run the daemon:"
+echo "  To run Nox:"
 echo ""
+echo "    nox                  # start daemon + tray"
+echo "    nox status           # check state"
+echo "    nox log              # tail logs"
+echo "    nox stop             # stop everything"
+echo ""
+echo "  Or manually:"
 echo "    source $VENV_DIR/bin/activate"
 echo "    python -m x11_mcp_voice -v"
 echo ""
@@ -270,5 +316,5 @@ echo "    cp $SCRIPT_DIR/config.example.yaml config.yaml"
 echo "    # Edit config.yaml to customize"
 echo ""
 echo "  Voice models directory: $VOICES_DIR/"
-echo "  Logs: use -v flag for debug output"
+echo "  Logs: ~/.local/log/nox/daemon.log"
 echo ""
