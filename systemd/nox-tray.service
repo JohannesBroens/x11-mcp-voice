@@ -1,0 +1,13 @@
+[Unit]
+Description=Nox Tray Indicator
+After=graphical-session.target nox-daemon.service
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/Documents/git/x11-mcp-voice/.venv/bin/python -m x11_mcp_voice.tray
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=graphical-session.target
