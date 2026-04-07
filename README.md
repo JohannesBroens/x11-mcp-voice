@@ -2,6 +2,17 @@
 
 Say a wake word, speak a command, and Claude controls your desktop — hands-free.
 
+<p align="center">
+  <img src="docs/images/nox-somnus.png" width="64" title="somnus — sleeping" alt="Idle">
+  <img src="docs/images/nox-excito.png" width="64" title="excito — wake detected" alt="Wake">
+  <img src="docs/images/nox-ausculto.png" width="64" title="ausculto — listening" alt="Listening">
+  <img src="docs/images/nox-cogito.png" width="64" title="cogito — thinking" alt="Thinking">
+  <img src="docs/images/nox-dico.png" width="64" title="dico — speaking" alt="Speaking">
+  <img src="docs/images/nox-impero.png" width="64" title="impero — controlling" alt="Controlling">
+  <img src="docs/images/nox-erratum.png" width="64" title="erratum — error" alt="Error">
+</p>
+<p align="center"><sub>somnus &nbsp;&bull;&nbsp; excito &nbsp;&bull;&nbsp; ausculto &nbsp;&bull;&nbsp; cogito &nbsp;&bull;&nbsp; dico &nbsp;&bull;&nbsp; impero &nbsp;&bull;&nbsp; erratum</sub></p>
+
 Nox is a voice daemon for Linux that chains wake word detection, GPU-accelerated speech-to-text, Claude Code, [x11-mcp](https://github.com/JohannesBroens/x11-mcp) desktop automation, and local text-to-speech into a single hands-free pipeline. Everything runs locally except the Claude call.
 
 ## Quick start
