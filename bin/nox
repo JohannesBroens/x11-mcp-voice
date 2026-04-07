@@ -1,0 +1,141 @@
+#!/usr/bin/env bash
+#
+# nox — CLI for the Nox voice daemon
+#
+# Usage:
+#   nox              Start daemon + tray (if not running)
+#   nox stop         Stop daemon + tray
+#   nox restart      Restart daemon (tray reconnects)
+#   nox status       Show current state
+#   nox log          Tail the log file
+#   nox install      Enable systemd autostart
+#   nox uninstall    Disable systemd autostart
+#
+set -euo pipefail
+
+SERVICE="nox-daemon"
+TRAY_SERVICE="nox-tray"
+SOCKET_PATH="/run/user/$(id -u)/nox.sock"
+LOG_FILE="$HOME/.local/log/nox/daemon.log"
+
+# Colors
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+CYAN='\033[0;36m'
+NC='\033[0m'
+
+_is_running() {
+    systemctl --user is-active --quiet "$SERVICE" 2>/dev/null
+}
+
+_read_state() {
+    if [[ -S "$SOCKET_PATH" ]]; then
+        timeout 2 socat - UNIX-CONNECT:"$SOCKET_PATH" 2>/dev/null | head -1 | python3 -c "
+import sys, json
+try:
+    msg = json.loads(sys.stdin.readline())
+    print(msg.get('state', 'unknown'))
+except: print('unknown')
+" 2>/dev/null || echo "unknown"
+    else
+        echo "unknown"
+    fi
+}
+
+cmd_start() {
+    if _is_running; then
+        state=$(_read_state)
+        echo -e "${GREEN}nox:${NC} already running (${CYAN}${state}${NC})"
+        return 0
+    fi
+    echo -e "${GREEN}nox:${NC} starting daemon..."
+    systemctl --user start "$SERVICE"
+    echo -e "${GREEN}nox:${NC} starting tray..."
+    systemctl --user start "$TRAY_SERVICE" 2>/dev/null || true
+    sleep 1
+    if _is_running; then
+        state=$(_read_state)
+        echo -e "${GREEN}nox:${NC} running (${CYAN}${state}${NC})"
+    else
+        echo -e "${RED}nox:${NC} failed to start. Check: journalctl --user -u $SERVICE"
+        return 1
+    fi
+}
+
+cmd_stop() {
+    echo -e "${GREEN}nox:${NC} stopping..."
+    systemctl --user stop "$TRAY_SERVICE" 2>/dev/null || true
+    systemctl --user stop "$SERVICE" 2>/dev/null || true
+    echo -e "${GREEN}nox:${NC} stopped"
+}
+
+cmd_restart() {
+    echo -e "${GREEN}nox:${NC} restarting daemon..."
+    systemctl --user restart "$SERVICE"
+    sleep 1
+    if _is_running; then
+        state=$(_read_state)
+        echo -e "${GREEN}nox:${NC} running (${CYAN}${state}${NC})"
+    else
+        echo -e "${RED}nox:${NC} failed to restart"
+        return 1
+    fi
+}
+
+cmd_status() {
+    if _is_running; then
+        state=$(_read_state)
+        echo -e "${GREEN}nox:${NC} running (${CYAN}${state}${NC})"
+    else
+        echo -e "${YELLOW}nox:${NC} not running"
+    fi
+}
+
+cmd_log() {
+    if [[ -f "$LOG_FILE" ]]; then
+        tail -f "$LOG_FILE"
+    else
+        echo -e "${YELLOW}nox:${NC} no log file at $LOG_FILE"
+        echo "  Try: journalctl --user -u $SERVICE -f"
+    fi
+}
+
+cmd_install() {
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+    SYSTEMD_DIR="$HOME/.config/systemd/user"
+    BIN_DIR="$HOME/.local/bin"
+    mkdir -p "$SYSTEMD_DIR" "$BIN_DIR"
+    cp "$SCRIPT_DIR/systemd/nox-daemon.service" "$SYSTEMD_DIR/"
+    cp "$SCRIPT_DIR/systemd/nox-tray.service" "$SYSTEMD_DIR/"
+    cp "$SCRIPT_DIR/bin/nox" "$BIN_DIR/nox"
+    chmod +x "$BIN_DIR/nox"
+    systemctl --user daemon-reload
+    systemctl --user enable "$SERVICE" "$TRAY_SERVICE"
+    echo -e "${GREEN}nox:${NC} installed and enabled for autostart"
+    echo "  Services: $SYSTEMD_DIR/{nox-daemon,nox-tray}.service"
+    echo "  CLI: $BIN_DIR/nox"
+    echo "  Start now with: nox"
+}
+
+cmd_uninstall() {
+    systemctl --user stop "$TRAY_SERVICE" 2>/dev/null || true
+    systemctl --user stop "$SERVICE" 2>/dev/null || true
+    systemctl --user disable "$SERVICE" "$TRAY_SERVICE" 2>/dev/null || true
+    echo -e "${GREEN}nox:${NC} disabled autostart"
+}
+
+case "${1:-}" in
+    "")         cmd_start ;;
+    start)      cmd_start ;;
+    stop)       cmd_stop ;;
+    restart)    cmd_restart ;;
+    status)     cmd_status ;;
+    log)        cmd_log ;;
+    install)    cmd_install ;;
+    uninstall)  cmd_uninstall ;;
+    *)
+        echo "Usage: nox [start|stop|restart|status|log|install|uninstall]"
+        exit 1
+        ;;
+esac
