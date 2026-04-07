@@ -3,7 +3,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import asyncio
 import numpy as np
 
-from x11_mcp_voice.daemon import Daemon, State
+from x11_mcp_voice.daemon import Daemon
+from x11_mcp_voice.state import State
 from x11_mcp_voice.config import Config
 
 

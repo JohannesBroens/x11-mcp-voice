@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import enum
 import logging
 import signal
 import time
@@ -12,17 +11,11 @@ from x11_mcp_voice.agent import Agent
 from x11_mcp_voice.config import Config
 from x11_mcp_voice.media_control import MediaController
 from x11_mcp_voice.speaker import Speaker
+from x11_mcp_voice.state import State
 from x11_mcp_voice.transcriber import Transcriber
 from x11_mcp_voice.wake_word import WakeWordDetector
 
 log = logging.getLogger(__name__)
-
-
-class State(enum.Enum):
-    IDLE = "idle"
-    LISTENING = "listening"
-    PROCESSING = "processing"
-    SPEAKING = "speaking"
 
 
 class Daemon:

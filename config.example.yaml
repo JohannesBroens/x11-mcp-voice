@@ -29,3 +29,8 @@ audio:
 conversation:
   style: "auto"                 # "auto" | "confirmations" | "walkie_talkie"
   followup_timeout_s: 3.0       # seconds to wait for follow-up speech
+
+service:
+  autostart: false            # enable systemd autostart on install
+  socket_path: null           # default: /run/user/{uid}/nox.sock
+  log_file: null              # default: ~/.local/log/nox/daemon.log

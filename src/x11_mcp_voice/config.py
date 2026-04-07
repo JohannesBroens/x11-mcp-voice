@@ -49,6 +49,13 @@ class ConversationConfig:
 
 
 @dataclass
+class ServiceConfig:
+    autostart: bool = False
+    socket_path: str | None = None
+    log_file: str | None = None
+
+
+@dataclass
 class Config:
     wake_word: WakeWordConfig = field(default_factory=WakeWordConfig)
     stt: STTConfig = field(default_factory=STTConfig)
@@ -57,6 +64,7 @@ class Config:
     agent: AgentConfig = field(default_factory=AgentConfig)
     audio: AudioConfig = field(default_factory=AudioConfig)
     conversation: ConversationConfig = field(default_factory=ConversationConfig)
+    service: ServiceConfig = field(default_factory=ServiceConfig)
 
 
 _SECTION_CLASSES = {
@@ -67,6 +75,7 @@ _SECTION_CLASSES = {
     "agent": AgentConfig,
     "audio": AudioConfig,
     "conversation": ConversationConfig,
+    "service": ServiceConfig,
 }
 
 

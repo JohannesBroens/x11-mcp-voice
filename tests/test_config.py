@@ -50,3 +50,10 @@ def test_load_config_partial_section(tmp_path):
     # Other audio fields keep defaults
     assert cfg.audio.silence_threshold_ms == 500
     assert cfg.audio.max_recording_s == 30
+
+
+def test_service_config_defaults():
+    cfg = Config()
+    assert cfg.service.autostart is False
+    assert cfg.service.socket_path is None
+    assert cfg.service.log_file is None
