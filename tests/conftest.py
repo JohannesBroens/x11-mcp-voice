@@ -14,6 +14,9 @@ _STUB_MODULES = [
     "nemo.collections.asr",
     "piper",
     "torch",
+    "pystray",
+    "PIL",
+    "PIL.Image",
 ]
 
 for _mod in _STUB_MODULES:
