@@ -11,3 +11,4 @@ models/
 .worktrees/
 config.yaml
 .claude/
+.superpowers/
