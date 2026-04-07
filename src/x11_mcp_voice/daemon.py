@@ -11,7 +11,7 @@ from x11_mcp_voice.agent import Agent
 from x11_mcp_voice.config import Config
 from x11_mcp_voice.media_control import MediaController
 from x11_mcp_voice.speaker import Speaker
-from x11_mcp_voice.state import State
+from x11_mcp_voice.state import State, StateServer
 from x11_mcp_voice.transcriber import Transcriber
 from x11_mcp_voice.wake_word import WakeWordDetector
 
@@ -31,6 +31,13 @@ class Daemon:
         self._audio_buffer: list[np.ndarray] = []
         self._recording = False
 
+        # State broadcasting
+        socket_path = config.service.socket_path
+        if socket_path is None:
+            import os
+            socket_path = f"/run/user/{os.getuid()}/nox.sock"
+        self._state_server = StateServer(socket_path)
+
         # Components
         self._wake_detector = WakeWordDetector(
             model=config.wake_word.model,
@@ -45,7 +52,8 @@ class Daemon:
             speed=config.tts.speed,
         )
         self._media = MediaController(player=config.media.player)
-        self._agent = Agent(config.agent, config.conversation)
+        self._agent = Agent(config.agent, config.conversation,
+                            state_callback=self._on_agent_tool_use)
 
     async def run(self) -> None:
         """Main entry point. Runs the state machine forever until interrupted."""
@@ -57,6 +65,7 @@ class Daemon:
 
         # Connect to x11-mcp
         await self._agent.connect()
+        await self._state_server.start()
 
         # Start wake word detection
         self._wake_detector.start(
@@ -93,10 +102,20 @@ class Daemon:
         if self._recording:
             self._audio_buffer.append(chunk.copy())
 
+    async def _set_state(self, state: State, detail: str | None = None) -> None:
+        """Update state and broadcast via socket."""
+        self._state = state
+        log.info("%s", detail or state.value, extra={"nox_state": state.value})
+        await self._state_server.set_state(state, detail)
+
+    async def _on_agent_tool_use(self, tool_name: str) -> None:
+        """Called from agent when x11-mcp tool is used."""
+        await self._set_state(State.CONTROLLING, detail=f"x11-mcp: {tool_name}")
+
     async def _handle_interaction(self) -> None:
         """Handle a complete interaction: listen -> process -> speak, with follow-up loop."""
-        self._state = State.LISTENING
-        log.info("State: LISTENING")
+        await self._set_state(State.WAKE)
+        await self._set_state(State.LISTENING)
 
         # Pause media
         if self._config.media.auto_pause:
@@ -114,8 +133,7 @@ class Daemon:
                 break
 
             # Process: transcribe + send to Claude
-            self._state = State.PROCESSING
-            log.info("State: PROCESSING")
+            await self._set_state(State.PROCESSING)
             response = await self._process(audio)
 
             if response is None:
@@ -126,8 +144,7 @@ class Daemon:
                 self._media.pause()
 
             # Speak response
-            self._state = State.SPEAKING
-            log.info("State: SPEAKING (%d chars)", len(response))
+            await self._set_state(State.SPEAKING, detail=f"{len(response)} chars")
             await asyncio.get_event_loop().run_in_executor(None, self._speaker.speak, response)
 
             # Check if we should listen for follow-up
@@ -139,16 +156,14 @@ class Daemon:
                 self._media.pause()
 
             # Wait for follow-up speech (VAD-based)
-            self._state = State.LISTENING
-            log.info("State: LISTENING (follow-up window)")
+            await self._set_state(State.LISTENING, detail="follow-up window")
             is_followup = True
             has_speech = await self._wait_for_speech(self._config.conversation.followup_timeout_s)
             if not has_speech:
                 break
 
         # End of interaction
-        self._state = State.IDLE
-        log.info("State: IDLE")
+        await self._set_state(State.IDLE)
         if self._config.media.auto_pause:
             self._media.resume()
 
@@ -249,6 +264,7 @@ class Daemon:
 
     async def _cleanup(self) -> None:
         """Clean up all resources."""
+        await self._state_server.stop()
         self._wake_detector.stop()
         await self._agent.disconnect()
         log.info("Daemon stopped")

@@ -19,13 +19,18 @@ def daemon(config):
          patch("x11_mcp_voice.daemon.Transcriber"), \
          patch("x11_mcp_voice.daemon.Speaker"), \
          patch("x11_mcp_voice.daemon.MediaController"), \
-         patch("x11_mcp_voice.daemon.Agent"):
+         patch("x11_mcp_voice.daemon.Agent"), \
+         patch("x11_mcp_voice.daemon.StateServer"):
         d = Daemon(config)
     return d
 
 
 def test_initial_state(daemon):
     assert daemon._state == State.IDLE
+
+
+def test_daemon_has_state_server(daemon):
+    assert hasattr(daemon, '_state_server')
 
 
 def test_on_wake_transitions_to_listening(daemon):

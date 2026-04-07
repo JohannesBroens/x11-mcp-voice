@@ -63,11 +63,13 @@ class Agent:
     which already has x11-mcp tools configured. No separate API key needed.
     """
 
-    def __init__(self, agent_config: AgentConfig, conversation_config: ConversationConfig):
+    def __init__(self, agent_config: AgentConfig, conversation_config: ConversationConfig,
+                 state_callback=None):
         self._model = agent_config.model
         self._style = conversation_config.style
         self._session_id: str | None = None
         self._messages: list[dict] = []
+        self._state_callback = state_callback
 
         style_instruction = _STYLE_INSTRUCTIONS.get(self._style, _STYLE_INSTRUCTIONS["auto"])
         self._system = _SYSTEM_PROMPT.format(style_instruction=style_instruction)
@@ -151,6 +153,10 @@ class Agent:
                 for block in message.get("content", []):
                     if block.get("type") == "text":
                         log.debug("Claude: %s", block["text"][:200])
+                    elif block.get("type") == "tool_use" and self._state_callback:
+                        tool_name = block.get("name", "")
+                        if "x11" in tool_name or "mcp" in tool_name:
+                            await self._state_callback(tool_name)
 
             elif event_type == "result":
                 result_text = event.get("result", "")
