@@ -1,12 +1,12 @@
 # Nox — Voice-Activated Desktop Automation
 
-> **A machine that can hear you, understand you, and act on your behalf is not a tool — it is a delegation of agency.** This project gives an AI full control over your mouse, keyboard, and screen through voice commands alone. It will click things, type things, and navigate your desktop autonomously. It bypasses all permission prompts by design. There is no undo button for a misunderstood sentence.
+> **⚠️ This is [x11-mcp](https://github.com/JohannesBroens/x11-mcp) with a microphone.** That project gives AI eyes and hands on your desktop. This one gives it ears. You speak a sentence, and a machine that cannot see what you see, cannot hear what you mean, and cannot undo what it does will take control of your mouse and keyboard and act on its best interpretation of your words.
 >
-> **This is an experimental research project, not production software.** Do not install this on a system you depend on. Do not run it near sensitive accounts, financial applications, or anything you cannot afford to have clicked, typed into, or closed by a well-meaning but imperfect machine. The author uses this daily and accepts the risk. You should understand the risk before you do the same.
+> The gap between what you said and what it heard is filled by a speech-to-text model. The gap between what it heard and what it does is filled by a language model. Neither is perfect. Both are confident. And unlike a typed command, you are not looking at a prompt when you speak — you are across the room, or cooking, or not paying attention. The machine acts anyway.
+>
+> **This is an experimental research project, not production software.** It explores what happens when the interface between human intent and machine action is a spoken sentence — the most natural and the most ambiguous form of instruction we have. Do not run this on a system where unintended actions carry real consequences. The author uses this daily and accepts the risk. You should understand the risk before you do the same.
 
 ---
-
-Say a wake word, speak a command, and Claude controls your desktop — hands-free.
 
 <p align="center">
   <img src="docs/images/nox-somnus.png" width="64" title="somnus — sleeping" alt="Idle">
@@ -19,7 +19,9 @@ Say a wake word, speak a command, and Claude controls your desktop — hands-fre
 </p>
 <p align="center"><sub>somnus &nbsp;&bull;&nbsp; excito &nbsp;&bull;&nbsp; ausculto &nbsp;&bull;&nbsp; cogito &nbsp;&bull;&nbsp; dico &nbsp;&bull;&nbsp; impero &nbsp;&bull;&nbsp; erratum</sub></p>
 
-Nox is a voice daemon for Linux that chains wake word detection, GPU-accelerated speech-to-text, Claude Code, [x11-mcp](https://github.com/JohannesBroens/x11-mcp) desktop automation, and local text-to-speech into a single hands-free pipeline. Everything runs locally except the Claude call.
+Say a wake word, speak a command, and Claude controls your desktop — hands-free.
+
+Nox is a voice daemon for Linux that sits on top of [x11-mcp](https://github.com/JohannesBroens/x11-mcp). Where x11-mcp provides the eyes and hands (screen capture, mouse, keyboard), Nox adds the ears and voice — wake word detection, GPU-accelerated speech-to-text, Claude Code for reasoning, and local text-to-speech. Everything runs locally except the Claude call.
 
 ## Quick start
 
