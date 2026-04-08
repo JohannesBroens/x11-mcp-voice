@@ -12,3 +12,8 @@ models/
 config.yaml
 .claude/
 .superpowers/
+
+# Development artifacts — design specs, plans, and AI session context.
+# These contain personal setup details and implementation history.
+CLAUDE.md
+docs/superpowers/
