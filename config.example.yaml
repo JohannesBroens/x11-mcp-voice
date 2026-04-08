@@ -32,5 +32,6 @@ conversation:
 
 service:
   autostart: false            # enable systemd autostart on install
+  chat_autostart: true        # open chat window minimized on login (default: on)
   socket_path: null           # default: /run/user/{uid}/nox.sock
   log_file: null              # default: ~/.local/log/nox/daemon.log

@@ -51,6 +51,7 @@ class ConversationConfig:
 @dataclass
 class ServiceConfig:
     autostart: bool = False
+    chat_autostart: bool = True
     socket_path: str | None = None
     log_file: str | None = None
 

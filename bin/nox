@@ -9,8 +9,8 @@
 #   nox status       Show current state
 #   nox log          Tail the log file
 #   nox chat         Open terminal chat TUI
-#   nox install      Enable systemd autostart
-#   nox uninstall    Disable systemd autostart
+#   nox install      Enable systemd autostart + chat window
+#   nox uninstall    Disable autostart
 #
 set -euo pipefail
 
@@ -19,6 +19,8 @@ TRAY_SERVICE="nox-tray"
 SOCKET_PATH="/run/user/$(id -u)/nox.sock"
 LOG_FILE="$HOME/.local/log/nox/daemon.log"
 PROJECT_DIR="$HOME/Documents/git/x11-mcp-voice"
+AUTOSTART_DIR="$HOME/.config/autostart"
+CHAT_DESKTOP="$AUTOSTART_DIR/nox-chat.desktop"
 
 # Colors
 GREEN='\033[0;32m'
@@ -48,6 +50,24 @@ print(msg.get('state', 'unknown'))
     else
         echo "unknown"
     fi
+}
+
+_install_chat_desktop() {
+    # Generate .desktop file from template, replacing placeholders
+    local bin_dir="$HOME/.local/bin"
+    local icons_dir="$PROJECT_DIR/src/x11_mcp_voice/icons"
+    mkdir -p "$AUTOSTART_DIR"
+    sed -e "s|@BIN_DIR@|$bin_dir|g" \
+        -e "s|@ICONS_DIR@|$icons_dir|g" \
+        "$PROJECT_DIR/systemd/nox-chat.desktop.in" > "$CHAT_DESKTOP"
+}
+
+_remove_chat_desktop() {
+    rm -f "$CHAT_DESKTOP"
+}
+
+_chat_enabled() {
+    [[ -f "$CHAT_DESKTOP" ]]
 }
 
 cmd_start() {
@@ -97,6 +117,12 @@ cmd_status() {
     else
         echo -e "${YELLOW}nox:${NC} not running"
     fi
+
+    if _chat_enabled; then
+        echo -e "${GREEN}nox:${NC} chat window: enabled (opens minimized on login)"
+    else
+        echo -e "${YELLOW}nox:${NC} chat window: disabled"
+    fi
 }
 
 cmd_log() {
@@ -108,30 +134,53 @@ cmd_log() {
     fi
 }
 
+cmd_chat() {
+    exec "$PROJECT_DIR/.venv/bin/python" -m x11_mcp_voice.chat
+}
+
 cmd_install() {
     SYSTEMD_DIR="$HOME/.config/systemd/user"
     BIN_DIR="$HOME/.local/bin"
     mkdir -p "$SYSTEMD_DIR" "$BIN_DIR"
-    cp "$PROJECT_DIR/systemd/nox-daemon.service" "$SYSTEMD_DIR/"
-    cp "$PROJECT_DIR/systemd/nox-tray.service" "$SYSTEMD_DIR/"
-    cp "$PROJECT_DIR/bin/nox" "$BIN_DIR/nox"
-    chmod +x "$BIN_DIR/nox"
+
+    # Install systemd units
+    /bin/cp "$PROJECT_DIR/systemd/nox-daemon.service" "$SYSTEMD_DIR/"
+    /bin/cp "$PROJECT_DIR/systemd/nox-tray.service" "$SYSTEMD_DIR/"
     systemctl --user daemon-reload
     systemctl --user enable "$SERVICE" "$TRAY_SERVICE"
+
+    # Install CLI
+    /bin/cp "$PROJECT_DIR/bin/nox" "$BIN_DIR/nox"
+    chmod +x "$BIN_DIR/nox"
+
+    # Install chat window autostart (on by default)
+    # Check config for chat_autostart preference
+    CHAT_AUTO=$("$PROJECT_DIR/.venv/bin/python" -c "
+from x11_mcp_voice.config import load_config
+c = load_config()
+print('true' if c.service.chat_autostart else 'false')
+" 2>/dev/null || echo "true")
+
+    if [[ "$CHAT_AUTO" == "true" ]]; then
+        _install_chat_desktop
+        echo -e "${GREEN}nox:${NC} chat window enabled (opens minimized on login)"
+    else
+        _remove_chat_desktop
+        echo -e "${YELLOW}nox:${NC} chat window disabled (set service.chat_autostart: true to enable)"
+    fi
+
     echo -e "${GREEN}nox:${NC} installed and enabled for autostart"
     echo "  Services: $SYSTEMD_DIR/{nox-daemon,nox-tray}.service"
     echo "  CLI: $BIN_DIR/nox"
+    echo "  Chat: $CHAT_DESKTOP"
     echo "  Start now with: nox"
-}
-
-cmd_chat() {
-    exec "$PROJECT_DIR/.venv/bin/python" -m x11_mcp_voice.chat
 }
 
 cmd_uninstall() {
     systemctl --user stop "$TRAY_SERVICE" 2>/dev/null || true
     systemctl --user stop "$SERVICE" 2>/dev/null || true
     systemctl --user disable "$SERVICE" "$TRAY_SERVICE" 2>/dev/null || true
+    _remove_chat_desktop
     echo -e "${GREEN}nox:${NC} disabled autostart"
 }
 

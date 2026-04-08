@@ -98,6 +98,17 @@ class NoxTray:
 
         menu.append(Gtk.SeparatorMenuItem())
 
+        open_chat_item = Gtk.MenuItem(label="Open Chat")
+        open_chat_item.connect("activate", lambda _: self._open_chat())
+        menu.append(open_chat_item)
+
+        self._chat_toggle = Gtk.CheckMenuItem(label="Chat on Login")
+        self._chat_toggle.set_active(self._chat_desktop_exists())
+        self._chat_toggle.connect("toggled", self._on_chat_toggle)
+        menu.append(self._chat_toggle)
+
+        menu.append(Gtk.SeparatorMenuItem())
+
         log_item = Gtk.MenuItem(label="Open Log")
         log_item.connect("activate", lambda _: self._open_log())
         menu.append(log_item)
@@ -115,6 +126,34 @@ class NoxTray:
         subprocess.run(
             ["systemctl", "--user", action, "nox-daemon"], capture_output=True
         )
+
+    def _open_chat(self) -> None:
+        """Open a new terminal with nox chat."""
+        nox_bin = Path.home() / ".local" / "bin" / "nox"
+        subprocess.Popen(
+            ["gnome-terminal", "--title=Nox Chat", "--", str(nox_bin), "chat"]
+        )
+
+    def _chat_desktop_path(self) -> Path:
+        return Path.home() / ".config" / "autostart" / "nox-chat.desktop"
+
+    def _chat_desktop_exists(self) -> bool:
+        return self._chat_desktop_path().exists()
+
+    def _on_chat_toggle(self, widget) -> None:
+        """Toggle chat-on-login autostart."""
+        if widget.get_active():
+            # Enable: run nox install-chat-desktop via subprocess
+            subprocess.run(
+                [str(Path.home() / ".local" / "bin" / "nox"), "install"],
+                capture_output=True,
+            )
+        else:
+            # Disable: remove the .desktop file
+            desktop = self._chat_desktop_path()
+            if desktop.exists():
+                desktop.unlink()
+        log.info("Chat on login: %s", "enabled" if widget.get_active() else "disabled")
 
     def _open_log(self) -> None:
         log_file = Path.home() / ".local" / "log" / "nox" / "daemon.log"

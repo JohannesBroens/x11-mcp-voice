@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Nox Chat
+Comment=Nox voice assistant live transcript
+Exec=gnome-terminal --title="Nox Chat" --minimize -- @BIN_DIR@/nox chat
+Icon=@ICONS_DIR@/nox-somnus.png
+Terminal=false
+Categories=Utility;
+StartupNotify=false
+X-GNOME-Autostart-enabled=true
