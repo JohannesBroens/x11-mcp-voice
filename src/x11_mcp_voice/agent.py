@@ -39,20 +39,30 @@ _STYLE_INSTRUCTIONS = {
 
 
 def _clean_for_speech(text: str) -> str:
-    """Strip markdown formatting and emoji so TTS reads natural text."""
+    """Strip markdown formatting, URLs, and TTS-unfriendly content so piper reads natural speech."""
     # Remove markdown bold/italic
     text = re.sub(r'\*{1,3}(.+?)\*{1,3}', r'\1', text)
     # Remove markdown links [text](url) -> text
     text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', text)
-    # Remove backticks
+    # Remove standalone URLs (https://... or http://...)
+    text = re.sub(r'https?://\S+', '', text)
+    # Remove backticks and code blocks
+    text = re.sub(r'```[\s\S]*?```', '', text)
     text = text.replace('`', '')
+    # Convert reddit/forum paths to speakable text: r/rav4prime -> "the rav4prime subreddit"
+    text = re.sub(r'\br/(\w+)', r'the \1 subreddit', text)
+    # Remove markdown headers (# ## ###)
+    text = re.sub(r'^#{1,6}\s+', '', text, flags=re.MULTILINE)
+    # Remove list bullets/dashes at start of lines
+    text = re.sub(r'^[\-\*]\s+', '', text, flags=re.MULTILINE)
     # Remove emoji (Unicode emoji ranges)
     text = re.sub(
         r'[\U0001F300-\U0001FAFF\U00002702-\U000027B0\U0000FE00-\U0000FE0F\U0000200D]',
         '', text,
     )
-    # Collapse multiple spaces
+    # Collapse multiple spaces and blank lines
     text = re.sub(r'  +', ' ', text)
+    text = re.sub(r'\n{3,}', '\n\n', text)
     return text.strip()
 
 

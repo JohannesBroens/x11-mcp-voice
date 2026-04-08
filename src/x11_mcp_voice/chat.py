@@ -308,14 +308,35 @@ class NoxChat:
         table.add_row(face, info)
         return table
 
-    def _render_transcript(self) -> Panel:
-        """Render the scrolling conversation transcript."""
+    def _render_transcript(self, max_lines: int = 0) -> Panel:
+        """Render the scrolling conversation transcript.
+
+        Shows only the most recent messages that fit in max_lines.
+        This gives auto-scroll-to-bottom behavior.
+        """
         text = Text()
 
         if not self._messages:
             text.append("  Waiting for conversation...", style="dim italic")
         else:
-            for i, msg in enumerate(self._messages):
+            # Estimate lines per message: 2 (header + text) + 1 blank + wrapping
+            # Show messages from the end until we run out of space
+            messages = self._messages
+            if max_lines > 0:
+                # Rough estimate: each message takes ~3-4 lines (header, text, blank)
+                # plus long messages wrap. Be conservative.
+                visible = []
+                lines_used = 0
+                for msg in reversed(messages):
+                    # Estimate: 1 header + ceil(text_len/70) text lines + 1 blank
+                    msg_lines = 2 + len(msg["text"]) // 70 + 1
+                    if lines_used + msg_lines > max_lines and visible:
+                        break
+                    visible.append(msg)
+                    lines_used += msg_lines
+                messages = list(reversed(visible))
+
+            for i, msg in enumerate(messages):
                 ts = msg["time"]
                 if msg["role"] == "user":
                     text.append(f"  {ts}  ", style="dim")
@@ -326,17 +347,20 @@ class NoxChat:
                     text.append("Nox\n", style="bold green")
                     text.append(f"  {msg['text']}\n", style="white")
 
-                if i < len(self._messages) - 1:
+                if i < len(messages) - 1:
                     text.append("\n")
 
         return Panel(text, border_style="dim", padding=(1, 1))
 
-    def _render(self) -> Group:
+    def _render(self, console_height: int = 40) -> Group:
         """Combine all UI elements into a single renderable group."""
         self._frame += 1
 
         header = self._render_header()
-        transcript = self._render_transcript()
+        # Header panel: 5 face lines + 2 padding + 2 border = ~9 lines
+        # Footer: 1 line. Transcript gets the rest.
+        transcript_lines = max(console_height - 12, 5)
+        transcript = self._render_transcript(max_lines=transcript_lines)
         footer = Text("Ctrl+C to exit", style="dim", justify="center")
 
         return Group(
@@ -372,17 +396,21 @@ class NoxChat:
 
     async def run(self) -> None:
         """Start the listener task and run the Rich Live display."""
+        from rich.console import Console
+        console = Console()
+
         # Start socket listener in background
         listener = asyncio.create_task(self._listen_loop())
 
         try:
             with Live(
-                self._render(),
+                self._render(console.height),
+                console=console,
                 refresh_per_second=4,
                 screen=True,
             ) as live:
                 while True:
-                    live.update(self._render())
+                    live.update(self._render(console.height))
                     await asyncio.sleep(0.25)
         except (KeyboardInterrupt, asyncio.CancelledError):
             pass
