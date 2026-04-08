@@ -125,9 +125,11 @@ class Daemon:
         await self._set_state(State.WAKE)
         await self._set_state(State.LISTENING)
 
-        # Pause media
+        # Pause media — wait briefly for playerctl to propagate over D-Bus
+        # so the mic doesn't pick up lingering audio
         if self._config.media.auto_pause:
             self._media.pause()
+            await asyncio.sleep(0.3)
 
         is_followup = False
         while True:

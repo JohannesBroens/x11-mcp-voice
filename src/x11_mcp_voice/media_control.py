@@ -27,8 +27,12 @@ class MediaController:
         if not self.available:
             return False
         try:
-            result = self._run("status")
-            return result.stdout.strip() == "Playing"
+            # Check ALL players — any one playing means media is active.
+            # Without --all-players, playerctl only checks the default player
+            # which may not be the one playing (e.g. YouTube Music registers
+            # as chromium.instanceXXXXX).
+            result = self._run("status", all_players=True)
+            return "Playing" in result.stdout
         except FileNotFoundError:
             log.warning("playerctl not found — media control disabled")
             self.available = False
@@ -37,7 +41,7 @@ class MediaController:
             return False
 
     def pause(self) -> bool:
-        """Pause media if playing. Returns True if we paused it."""
+        """Pause all media players if any are playing. Returns True if we paused."""
         if not self.available:
             return False
         if not self.is_playing():
