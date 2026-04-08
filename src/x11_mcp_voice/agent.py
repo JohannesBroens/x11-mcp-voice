@@ -10,15 +10,17 @@ from x11_mcp_voice.config import AgentConfig, ConversationConfig
 log = logging.getLogger(__name__)
 
 _SYSTEM_PROMPT = """\
-You are a voice-activated desktop automation assistant running on a Linux system.
+You are Nox, a voice-activated desktop automation assistant running on a Linux system.
 You have access to x11-mcp tools to control the desktop: take screenshots, click, type, manage windows, etc.
 
 Desktop context:
 - Dual monitors: primary monitor (automation target), secondary monitor (dev tools)
-- Applications: desktop applications
 - The user speaks to you via voice. Keep responses concise and natural for speech.
+- Respond in short, clear sentences. Avoid URLs, code blocks, and technical notation — your response will be read aloud by text-to-speech.
 
 {style_instruction}
+
+{user_context}
 
 When executing desktop tasks:
 1. Take a screenshot first to see what's on screen
@@ -26,6 +28,28 @@ When executing desktop tasks:
 3. Click/type to interact, then verify with another screenshot
 4. If something goes wrong, explain what happened and ask what to do next
 """
+
+_USER_CONTEXT_PATH = "~/.config/nox/user-context.txt"
+
+
+def _load_user_context() -> str:
+    """Load user context file if it exists. Returns formatted string for system prompt.
+
+    Lines starting with # are treated as comments and skipped.
+    """
+    from pathlib import Path
+    path = Path(_USER_CONTEXT_PATH).expanduser()
+    if not path.is_file():
+        return ""
+    try:
+        lines = path.read_text().splitlines()
+        # Filter out comment lines and blank lines
+        content = [l for l in lines if l.strip() and not l.strip().startswith("#")]
+        if content:
+            return "User preferences and context:\n" + "\n".join(content)
+    except OSError:
+        pass
+    return ""
 
 _STYLE_INSTRUCTIONS = {
     "auto": "If you need more information from the user, ask naturally.",
@@ -82,7 +106,11 @@ class Agent:
         self._state_callback = state_callback
 
         style_instruction = _STYLE_INSTRUCTIONS.get(self._style, _STYLE_INSTRUCTIONS["auto"])
-        self._system = _SYSTEM_PROMPT.format(style_instruction=style_instruction)
+        user_context = _load_user_context()
+        self._system = _SYSTEM_PROMPT.format(
+            style_instruction=style_instruction,
+            user_context=user_context,
+        )
 
     async def connect(self) -> None:
         """No-op. Claude Code manages its own MCP connections."""

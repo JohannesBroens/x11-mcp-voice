@@ -138,6 +138,31 @@ cmd_chat() {
     exec "$PROJECT_DIR/.venv/bin/python" -m x11_mcp_voice.chat
 }
 
+cmd_context() {
+    CONTEXT_FILE="$HOME/.config/nox/user-context.txt"
+    mkdir -p "$(dirname "$CONTEXT_FILE")"
+
+    if [[ ! -f "$CONTEXT_FILE" ]]; then
+        cat > "$CONTEXT_FILE" << 'TEMPLATE'
+# Nox User Context
+# Write anything here that Nox should know about you.
+# This is injected into every interaction as context.
+# Lines starting with # are ignored by Nox but kept for your reference.
+#
+# Examples:
+#   - When I say "play music", use the YouTube Music desktop app (not the browser)
+#   - My car is a 2023 Toyota RAV4 Prime
+#   - I prefer English for AI interactions
+#   - My name is Alex
+#
+TEMPLATE
+        echo -e "${GREEN}nox:${NC} created $CONTEXT_FILE"
+    fi
+
+    # Open in the user's preferred editor
+    exec "${EDITOR:-nano}" "$CONTEXT_FILE"
+}
+
 cmd_install() {
     SYSTEMD_DIR="$HOME/.config/systemd/user"
     BIN_DIR="$HOME/.local/bin"
@@ -193,10 +218,11 @@ case "${1:-}" in
     status)     cmd_status ;;
     log)        cmd_log ;;
     chat)       cmd_chat ;;
+    context)    cmd_context ;;
     install)    cmd_install ;;
     uninstall)  cmd_uninstall ;;
     *)
-        echo "Usage: nox [start|stop|restart|status|log|chat|install|uninstall]"
+        echo "Usage: nox [start|stop|restart|status|log|chat|context|install|uninstall]"
         exit 1
         ;;
 esac
