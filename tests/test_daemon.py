@@ -64,4 +64,4 @@ async def test_process_text_error_returns_fallback(daemon):
 
     result = await daemon._process_text("hello claude")
 
-    assert result == "I couldn't process that. Try again."
+    assert "RuntimeError" in result

@@ -9,6 +9,7 @@ ExecStart=%h/Documents/git/x11-mcp-voice/.venv/bin/python -m x11_mcp_voice
 Restart=on-failure
 RestartSec=5
 Environment=DISPLAY=:0
+Environment=PATH=%h/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
 
 [Install]
 WantedBy=default.target

@@ -247,9 +247,14 @@ class Daemon:
             response = await self._agent.send(text)
             log.info("Claude response: %s", response[:200])
             return response
-        except Exception:
+        except FileNotFoundError:
+            log.exception("Agent failed — claude binary not found")
+            return "Claude Code is not installed or not on the path. Check the logs."
+        except Exception as exc:
             log.exception("Agent failed")
-            return "I couldn't process that. Try again."
+            # Give the user the actual error type so they know what went wrong
+            err_name = type(exc).__name__
+            return f"Something went wrong: {err_name}. Check the logs for details."
 
     async def _wait_for_speech(self, timeout: float) -> bool:
         """Wait for speech within timeout. Returns True if speech detected."""
