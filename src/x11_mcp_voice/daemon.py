@@ -167,9 +167,12 @@ class Daemon:
             if self._config.conversation.style == "walkie_talkie":
                 break
 
-            # Pause media during follow-up listening so mic doesn't pick up music
+            # Resume media during follow-up window — the user has to speak
+            # over the music to trigger a follow-up, which filters out
+            # ambient noise, keyboard sounds, and accidental vocalizations.
+            # Media gets paused again at the top of the loop if they do speak.
             if self._config.media.auto_pause:
-                self._media.pause()
+                self._media.resume()
 
             # Wait for follow-up speech (VAD-based)
             await self._set_state(State.LISTENING, detail="follow-up window")
@@ -177,6 +180,11 @@ class Daemon:
             has_speech = await self._wait_for_speech(self._config.conversation.followup_timeout_s)
             if not has_speech:
                 break
+
+            # User is speaking — pause media again for clean recording
+            if self._config.media.auto_pause:
+                self._media.pause()
+                await asyncio.sleep(0.3)
 
         # End of interaction
         await self._set_state(State.IDLE)
