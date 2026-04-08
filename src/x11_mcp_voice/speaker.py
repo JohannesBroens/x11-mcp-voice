@@ -57,8 +57,8 @@ class Speaker:
             audio_data, sample_rate = self._synthesize(text)
             self._play(audio_data, sample_rate)
         except Exception:
-            log.exception("TTS failed, falling back to console output")
-            print(f"[TTS] {text}")
+            log.exception("TTS synthesis/playback failed")
+            log.warning("Unspeakable text: %s", text[:200])
         finally:
             self._playing = False
 
