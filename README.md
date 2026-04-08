@@ -31,7 +31,7 @@ nox              # start daemon + tray indicator
 ## What it does
 
 1. Listens for a wake word (local, always-on via openwakeword)
-2. Transcribes your speech (local, NVIDIA Parakeet, ~10ms on NVIDIA GPU)
+2. Transcribes your speech (local, NVIDIA Parakeet, near-instant on CUDA GPUs)
 3. Claude executes desktop actions via [x11-mcp](https://github.com/JohannesBroens/x11-mcp)
 4. Speaks the response back to you (local piper-tts)
 5. System tray icon shows live state with expressive Nox faces

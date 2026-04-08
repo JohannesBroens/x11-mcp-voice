@@ -17,3 +17,4 @@ config.yaml
 # These contain personal setup details and implementation history.
 CLAUDE.md
 docs/superpowers/
+docs/design-brief.md
