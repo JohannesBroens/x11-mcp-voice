@@ -74,10 +74,10 @@ def test_on_message_respects_max_messages():
     assert chat._messages[0]["text"] == "msg 2"
 
 
-def test_faces_have_six_lines():
+def test_faces_have_five_lines():
     from x11_mcp_voice.chat import FACES
     for state, lines in FACES.items():
-        assert len(lines) == 6, f"Face for {state} has {len(lines)} lines, expected 6"
+        assert len(lines) == 5, f"Face for {state} has {len(lines)} lines, expected 5"
 
 
 def test_faces_alt_subset_of_faces():
