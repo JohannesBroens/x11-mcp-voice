@@ -272,8 +272,8 @@ class NoxChat:
         state = self._current_state
         frames = FACE_FRAMES.get(state, FACE_FRAMES["erratum"])
 
-        # Cycle through all frames for this state
-        frame_idx = self._frame % len(frames)
+        # Hold each frame for 6 ticks (~1.5s at 4 FPS) before advancing
+        frame_idx = (self._frame // 6) % len(frames)
         color, lines = frames[frame_idx]
 
         face_text = Text()
