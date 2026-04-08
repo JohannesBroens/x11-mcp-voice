@@ -20,8 +20,8 @@ def test_tray_state_to_icon_name():
 def test_tray_tooltip_format():
     from x11_mcp_voice.tray import NoxTray
     tray_obj = NoxTray.__new__(NoxTray)
-    assert tray_obj._tooltip("somnus") == "Nox \u2014 somnus"
-    assert tray_obj._tooltip("cogito") == "Nox \u2014 cogito..."
+    assert tray_obj._tooltip("somnus") == "Nox - somnus"
+    assert tray_obj._tooltip("cogito") == "Nox - cogito..."
 
 
 _ACTIVE_STATES = {"ausculto", "cogito", "dico", "impero", "excito"}

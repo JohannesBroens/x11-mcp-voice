@@ -39,7 +39,7 @@ class NoxTray:
 
     def _tooltip(self, state: str) -> str:
         suffix = "..." if state in _ACTIVE_STATES else ""
-        return f"Nox \u2014 {state}{suffix}"
+        return f"Nox - {state}{suffix}"
 
     def _load_icon(self, state: str):
         from PIL import Image
