@@ -17,8 +17,13 @@ _STUB_MODULES = [
     "pystray",
     "PIL",
     "PIL.Image",
+    "gi",
+    "gi.repository",
 ]
 
 for _mod in _STUB_MODULES:
     if _mod not in sys.modules:
         sys.modules[_mod] = MagicMock()
+
+# gi.require_version needs to be a no-op
+sys.modules["gi"].require_version = MagicMock()
