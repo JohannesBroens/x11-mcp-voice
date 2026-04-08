@@ -1,5 +1,11 @@
 # Nox — Voice-Activated Desktop Automation
 
+> **A machine that can hear you, understand you, and act on your behalf is not a tool — it is a delegation of agency.** This project gives an AI full control over your mouse, keyboard, and screen through voice commands alone. It will click things, type things, and navigate your desktop autonomously. It bypasses all permission prompts by design. There is no undo button for a misunderstood sentence.
+>
+> **This is an experimental research project, not production software.** Do not install this on a system you depend on. Do not run it near sensitive accounts, financial applications, or anything you cannot afford to have clicked, typed into, or closed by a well-meaning but imperfect machine. The author uses this daily and accepts the risk. You should understand the risk before you do the same.
+
+---
+
 Say a wake word, speak a command, and Claude controls your desktop — hands-free.
 
 <p align="center">
