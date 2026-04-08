@@ -26,95 +26,182 @@ from x11_mcp_voice.config import load_config
 log = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# ASCII faces — 7 states, 5 lines each, true hexagonal shape
+# ASCII faces — 7 states, multi-frame animations, true hexagonal shape
 # ---------------------------------------------------------------------------
 
 # Every line is EXACTLY 16 chars. Pure ASCII only (no wide Unicode).
 # Hex geometry via / and \ diagonal chars:
-#   line 0: 4-space indent, 8-char flat top     "    ________    "
-#   line 1: 3-space indent, / forehead \         "   / glyph  \   "
-#   line 2: 2-space indent, / eyes     \         "  /  L    R  \  "
-#   line 3: 2-space indent, \ mouth    /         "  \   mouth  /  "
-#   line 4: 3-space indent, \ base     /         "   \________/   "
+#   line 0: "    ________    "  (top flat edge, 4-indent)
+#   line 1: "   / glyph  \   "  (forehead, 3-indent)
+#   line 2: "  /  L    R  \  "  (eyes, 2-indent — widest)
+#   line 3: "  \   mouth  /  "  (mouth, 2-indent — widest)
+#   line 4: "   \________/   "  (base, 3-indent)
+#
+# FACE_FRAMES[state] = list of (color, lines) tuples.
+# The renderer cycles through frames using frame_index % len(frames).
 
-FACES: dict[str, list[str]] = {
+FACE_FRAMES: dict[str, list[tuple[str, list[str]]]] = {
+    # Somnus: 4-frame breathing cycle — z's drift, eyes open/close
     "somnus": [
-        "    ________    ",
-        "   /  z  z  \\   ",
-        "  /  -    -  \\  ",
-        "  \\    --    /  ",
-        "   \\________/   ",
+        ("dim orange3", [
+            "    ________    ",
+            "   /        \\   ",
+            "  /  u    u  \\  ",
+            "  \\    -     /  ",
+            "   \\________/   ",
+        ]),
+        ("dim orange3", [
+            "    ________    ",
+            "   /   z    \\   ",
+            "  /  u    u  \\  ",
+            "  \\    .     /  ",
+            "   \\________/   ",
+        ]),
+        ("orange3", [
+            "    ________    ",
+            "   /  z  z  \\   ",
+            "  /  -    -  \\  ",
+            "  \\    -     /  ",
+            "   \\________/   ",
+        ]),
+        ("dim orange3", [
+            "    ________    ",
+            "   /     z  \\   ",
+            "  /  u    u  \\  ",
+            "  \\    .     /  ",
+            "   \\________/   ",
+        ]),
     ],
+    # Excito: 2-frame startle wobble — mouth flips, ! flickers
     "excito": [
-        "    ________    ",
-        "   /   !!   \\   ",
-        "  /  O    O  \\  ",
-        "  \\    ()    /  ",
-        "   \\________/   ",
+        ("bold yellow", [
+            "    ________    ",
+            "   /   !!   \\   ",
+            "  /  @    @  \\  ",
+            "  \\    oO    /  ",
+            "   \\________/   ",
+        ]),
+        ("bold yellow", [
+            "    ________    ",
+            "   /   !    \\   ",
+            "  /  @    @  \\  ",
+            "  \\    Oo    /  ",
+            "   \\________/   ",
+        ]),
     ],
+    # Ausculto: 2-frame listen pulse — eyes widen, mouth shifts
     "ausculto": [
-        "    ________    ",
-        "   /  [*]   \\   ",
-        "  /  o    o  \\  ",
-        "  \\    vv    /  ",
-        "   \\________/   ",
+        ("bold dodger_blue1", [
+            "    ________    ",
+            "   /  [*]   \\   ",
+            "  /  ^    ^  \\  ",
+            "  \\    w     /  ",
+            "   \\________/   ",
+        ]),
+        ("bold dodger_blue1", [
+            "    ________    ",
+            "   /  [*]   \\   ",
+            "  /  o    o  \\  ",
+            "  \\    u     /  ",
+            "   \\________/   ",
+        ]),
     ],
+    # Cogito: 4-frame think cycle — squint swaps, dots shift, mouth changes
     "cogito": [
-        "    ________    ",
-        "   /  ...   \\   ",
-        "  /  o    o  \\  ",
-        "  \\    ~~    /  ",
-        "   \\________/   ",
+        ("bold medium_purple", [
+            "    ________    ",
+            "   /  . .   \\   ",
+            "  /  o    -  \\  ",
+            "  \\    ~     /  ",
+            "   \\________/   ",
+        ]),
+        ("medium_purple", [
+            "    ________    ",
+            "   /   ..   \\   ",
+            "  /  o    -  \\  ",
+            "  \\    =     /  ",
+            "   \\________/   ",
+        ]),
+        ("bold medium_purple", [
+            "    ________    ",
+            "   /    . . \\   ",
+            "  /  -    o  \\  ",
+            "  \\    ~     /  ",
+            "   \\________/   ",
+        ]),
+        ("medium_purple", [
+            "    ________    ",
+            "   /   ..   \\   ",
+            "  /  -    o  \\  ",
+            "  \\    =     /  ",
+            "   \\________/   ",
+        ]),
     ],
+    # Dico: 3-frame talk cycle — mouth shape changes, note bounces
     "dico": [
-        "    ________    ",
-        "   /   ~*   \\   ",
-        "  /  #    #  \\  ",
-        "  \\    <>    /  ",
-        "   \\________/   ",
+        ("bold green3", [
+            "    ________    ",
+            "   /   ~*   \\   ",
+            "  /  ^    ^  \\  ",
+            "  \\    D     /  ",
+            "   \\________/   ",
+        ]),
+        ("bold green3", [
+            "    ________    ",
+            "   /    *~  \\   ",
+            "  /  ^    ^  \\  ",
+            "  \\    O     /  ",
+            "   \\________/   ",
+        ]),
+        ("green3", [
+            "    ________    ",
+            "   /   ~*   \\   ",
+            "  /  ^    ^  \\  ",
+            "  \\    o     /  ",
+            "   \\________/   ",
+        ]),
     ],
+    # Impero: 2-frame menace pulse — cursor twitches, smirk shifts
     "impero": [
-        "    ________    ",
-        "   /   >>   \\   ",
-        "  /  =    =  \\  ",
-        "  \\    __    /  ",
-        "   \\________/   ",
+        ("bold orange_red1", [
+            "    ________    ",
+            "   /   >>   \\   ",
+            "  /  >    <  \\  ",
+            "  \\    J     /  ",
+            "   \\________/   ",
+        ]),
+        ("orange_red1", [
+            "    ________    ",
+            "   /   }>   \\   ",
+            "  /  >    <  \\  ",
+            "  \\    j     /  ",
+            "   \\________/   ",
+        ]),
     ],
+    # Erratum: 2-frame distress — eyes pulse, mouth wobbles
     "erratum": [
-        "    ________    ",
-        "   /   /!   \\   ",
-        "  /  x    x  \\  ",
-        "  \\    __    /  ",
-        "   \\________/   ",
+        ("bold red", [
+            "    ________    ",
+            "   /   /!   \\   ",
+            "  /  x    x  \\  ",
+            "  \\    n     /  ",
+            "   \\________/   ",
+        ]),
+        ("red", [
+            "    ________    ",
+            "   /   /!   \\   ",
+            "  /  X    X  \\  ",
+            "  \\    v     /  ",
+            "   \\________/   ",
+        ]),
     ],
 }
 
-# Alternate frames for animated states (same 16-char alignment)
+# Legacy aliases for tests
+FACES: dict[str, list[str]] = {k: v[0][1] for k, v in FACE_FRAMES.items()}
 FACES_ALT: dict[str, list[str]] = {
-    "ausculto": [
-        "    ________    ",
-        "   /  [*]   \\   ",
-        "  /  O    O  \\  ",
-        "  \\    ^^    /  ",
-        "   \\________/   ",
-    ],
-    "cogito": [
-        "    ________    ",
-        "   /   ..   \\   ",
-        "  /  o    o  \\  ",
-        "  \\    --    /  ",
-        "   \\________/   ",
-    ],
-    "dico": [
-        "    ________    ",
-        "   /   ~*   \\   ",
-        "  /  #    #  \\  ",
-        "  \\    ()    /  ",
-        "   \\________/   ",
-    ],
+    k: v[1][1] for k, v in FACE_FRAMES.items() if len(v) > 1
 }
-
-_ANIMATED_STATES = set(FACES_ALT.keys())
 
 # ---------------------------------------------------------------------------
 # Colors and labels per state
@@ -181,15 +268,13 @@ class NoxChat:
             self._messages = self._messages[-self._max_messages:]
 
     def _render_face(self) -> Text:
-        """Return the colored ASCII face for the current state and frame."""
+        """Return the colored ASCII face for the current state and animation frame."""
         state = self._current_state
-        color = STATE_COLORS.get(state, "white")
+        frames = FACE_FRAMES.get(state, FACE_FRAMES["erratum"])
 
-        # Animate: toggle between primary and alt every 2 frames
-        if state in _ANIMATED_STATES and self._frame % 4 >= 2:
-            lines = FACES_ALT[state]
-        else:
-            lines = FACES.get(state, FACES["erratum"])
+        # Cycle through all frames for this state
+        frame_idx = self._frame % len(frames)
+        color, lines = frames[frame_idx]
 
         face_text = Text()
         for i, line in enumerate(lines):
@@ -293,12 +378,12 @@ class NoxChat:
         try:
             with Live(
                 self._render(),
-                refresh_per_second=2,
+                refresh_per_second=4,
                 screen=True,
             ) as live:
                 while True:
                     live.update(self._render())
-                    await asyncio.sleep(0.5)
+                    await asyncio.sleep(0.25)
         except (KeyboardInterrupt, asyncio.CancelledError):
             pass
         finally:
