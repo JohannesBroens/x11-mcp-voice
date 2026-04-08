@@ -8,7 +8,7 @@ Type=simple
 ExecStart=%h/Documents/git/x11-mcp-voice/.venv/bin/python -m x11_mcp_voice
 Restart=on-failure
 RestartSec=5
-Environment=DISPLAY=:1
+Environment=DISPLAY=:0
 
 [Install]
 WantedBy=default.target

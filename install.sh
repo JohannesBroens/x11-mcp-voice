@@ -54,7 +54,8 @@ sudo apt-get install -y -qq \
     python3-dev \
     alsa-utils \
     curl \
-    git
+    git \
+    gir1.2-ayatanaappindicator3-0.1
 
 ok "System packages installed"
 
@@ -251,6 +252,17 @@ systemctl --user daemon-reload
 # Install CLI
 cp "$SCRIPT_DIR/bin/nox" "$BIN_DIR/nox"
 chmod +x "$BIN_DIR/nox"
+
+# Symlink system gi (PyGObject) into venv for AppIndicator tray support
+# PyGObject can't be pip-installed without libgirepository-dev, but the system
+# package is already available — just symlink it into the venv.
+GI_SYSTEM="/usr/lib/python3/dist-packages/gi"
+PYTHON_VER=$(python -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+GI_VENV="$VENV_DIR/lib/python${PYTHON_VER}/site-packages/gi"
+if [[ -d "$GI_SYSTEM" ]] && [[ ! -e "$GI_VENV" ]]; then
+    ln -sf "$GI_SYSTEM" "$GI_VENV"
+    ok "Symlinked system gi into venv (AppIndicator tray support)"
+fi
 
 # Render icons (needs cairosvg)
 info "Rendering Nox icons..."
