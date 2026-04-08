@@ -149,9 +149,10 @@ cmd_install() {
     systemctl --user daemon-reload
     systemctl --user enable "$SERVICE" "$TRAY_SERVICE"
 
-    # Install CLI
+    # Install CLI + chat autostart wrapper
     /bin/cp "$PROJECT_DIR/bin/nox" "$BIN_DIR/nox"
-    chmod +x "$BIN_DIR/nox"
+    /bin/cp "$PROJECT_DIR/bin/nox-chat-autostart" "$BIN_DIR/nox-chat-autostart"
+    chmod +x "$BIN_DIR/nox" "$BIN_DIR/nox-chat-autostart"
 
     # Install chat window autostart (on by default)
     # Check config for chat_autostart preference

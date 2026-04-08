@@ -128,11 +128,19 @@ class NoxTray:
         )
 
     def _open_chat(self) -> None:
-        """Open a new terminal with nox chat."""
+        """Open a new terminal with nox chat using the system default terminal."""
         nox_bin = Path.home() / ".local" / "bin" / "nox"
-        subprocess.Popen(
-            ["gnome-terminal", "--title=Nox Chat", "--", str(nox_bin), "chat"]
-        )
+        # Detect terminal for correct CLI flags
+        try:
+            term_bin = os.path.basename(os.path.realpath("/usr/bin/x-terminal-emulator"))
+        except OSError:
+            term_bin = ""
+        if "alacritty" in term_bin:
+            subprocess.Popen(["x-terminal-emulator", "-T", "Nox Chat", "-e", str(nox_bin), "chat"])
+        elif "gnome-terminal" in term_bin:
+            subprocess.Popen(["gnome-terminal", "--title=Nox Chat", "--", str(nox_bin), "chat"])
+        else:
+            subprocess.Popen(["x-terminal-emulator", "-e", str(nox_bin), "chat"])
 
     def _chat_desktop_path(self) -> Path:
         return Path.home() / ".config" / "autostart" / "nox-chat.desktop"

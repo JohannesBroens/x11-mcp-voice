@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+#
+# nox-chat-autostart — launches nox chat in a terminal, then minimizes it.
+# Used by the XDG autostart .desktop file on login.
+#
+# Uses x-terminal-emulator (system default) with Alacritty/gnome-terminal
+# detection for the right CLI flags.
+#
+set -euo pipefail
+
+NOX_BIN="$HOME/.local/bin/nox"
+TITLE="Nox Chat"
+
+# Detect terminal and build command
+TERM_BIN="$(readlink -f /usr/bin/x-terminal-emulator 2>/dev/null || echo "")"
+TERM_NAME="$(basename "$TERM_BIN" 2>/dev/null || echo "")"
+
+case "$TERM_NAME" in
+    alacritty)
+        # Alacritty: -T for title, -e for command (must be last)
+        x-terminal-emulator -T "$TITLE" -e "$NOX_BIN" chat &
+        ;;
+    gnome-terminal|gnome-terminal.real)
+        # gnome-terminal: --title and -- separator
+        x-terminal-emulator --title="$TITLE" -- "$NOX_BIN" chat &
+        ;;
+    *)
+        # Generic fallback: most terminals support -e
+        x-terminal-emulator -e "$NOX_BIN" chat &
+        ;;
+esac
+
+TERM_PID=$!
+
+# Wait for the window to appear, then minimize it
+sleep 2
+xdotool search --name "$TITLE" windowminimize 2>/dev/null || true
+
+wait $TERM_PID 2>/dev/null || true
