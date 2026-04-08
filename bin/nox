@@ -17,6 +17,7 @@ SERVICE="nox-daemon"
 TRAY_SERVICE="nox-tray"
 SOCKET_PATH="/run/user/$(id -u)/nox.sock"
 LOG_FILE="$HOME/.local/log/nox/daemon.log"
+PROJECT_DIR="$HOME/Documents/git/x11-mcp-voice"
 
 # Colors
 GREEN='\033[0;32m'
@@ -102,13 +103,12 @@ cmd_log() {
 }
 
 cmd_install() {
-    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
     SYSTEMD_DIR="$HOME/.config/systemd/user"
     BIN_DIR="$HOME/.local/bin"
     mkdir -p "$SYSTEMD_DIR" "$BIN_DIR"
-    cp "$SCRIPT_DIR/systemd/nox-daemon.service" "$SYSTEMD_DIR/"
-    cp "$SCRIPT_DIR/systemd/nox-tray.service" "$SYSTEMD_DIR/"
-    cp "$SCRIPT_DIR/bin/nox" "$BIN_DIR/nox"
+    cp "$PROJECT_DIR/systemd/nox-daemon.service" "$SYSTEMD_DIR/"
+    cp "$PROJECT_DIR/systemd/nox-tray.service" "$SYSTEMD_DIR/"
+    cp "$PROJECT_DIR/bin/nox" "$BIN_DIR/nox"
     chmod +x "$BIN_DIR/nox"
     systemctl --user daemon-reload
     systemctl --user enable "$SERVICE" "$TRAY_SERVICE"
