@@ -32,12 +32,17 @@ _is_running() {
 
 _read_state() {
     if [[ -S "$SOCKET_PATH" ]]; then
-        timeout 2 socat - UNIX-CONNECT:"$SOCKET_PATH" 2>/dev/null | head -1 | python3 -c "
-import sys, json
-try:
-    msg = json.loads(sys.stdin.readline())
-    print(msg.get('state', 'unknown'))
-except: print('unknown')
+        python3 -c "
+import socket, json
+s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+s.settimeout(2)
+s.connect('$SOCKET_PATH')
+data = b''
+while b'\n' not in data:
+    data += s.recv(1024)
+s.close()
+msg = json.loads(data.decode().split('\n')[0])
+print(msg.get('state', 'unknown'))
 " 2>/dev/null || echo "unknown"
     else
         echo "unknown"
