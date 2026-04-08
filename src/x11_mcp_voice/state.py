@@ -27,6 +27,8 @@ class StateServer:
         self._socket_path = socket_path
         self._state = State.IDLE
         self._detail: str | None = None
+        self._user_text: str | None = None
+        self._assistant_text: str | None = None
         self._clients: list[asyncio.StreamWriter] = []
         self._server: asyncio.AbstractServer | None = None
 
@@ -59,10 +61,18 @@ class StateServer:
             os.unlink(self._socket_path)
         log.info("StateServer stopped")
 
-    async def set_state(self, state: State, detail: str | None = None) -> None:
+    async def set_state(
+        self,
+        state: State,
+        detail: str | None = None,
+        user_text: str | None = None,
+        assistant_text: str | None = None,
+    ) -> None:
         self._state = state
         self._detail = detail
-        msg = self._make_message()
+        self._user_text = user_text if user_text is not None else self._user_text
+        self._assistant_text = assistant_text if assistant_text is not None else self._assistant_text
+        msg = self._make_message(user_text=user_text, assistant_text=assistant_text)
         await self._broadcast(msg)
 
     async def _handle_client(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
@@ -79,10 +89,18 @@ class StateServer:
             if writer in self._clients:
                 self._clients.remove(writer)
 
-    def _make_message(self) -> bytes:
+    def _make_message(
+        self,
+        user_text: str | None = None,
+        assistant_text: str | None = None,
+    ) -> bytes:
         data: dict = {"state": self._state.value, "timestamp": int(time.time())}
         if self._detail:
             data["detail"] = self._detail
+        if user_text is not None:
+            data["user_text"] = user_text
+        if assistant_text is not None:
+            data["assistant_text"] = assistant_text
         return json.dumps(data).encode() + b"\n"
 
     async def _broadcast(self, msg: bytes) -> None:

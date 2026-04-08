@@ -102,11 +102,19 @@ class Daemon:
         if self._recording:
             self._audio_buffer.append(chunk.copy())
 
-    async def _set_state(self, state: State, detail: str | None = None) -> None:
+    async def _set_state(
+        self,
+        state: State,
+        detail: str | None = None,
+        user_text: str | None = None,
+        assistant_text: str | None = None,
+    ) -> None:
         """Update state and broadcast via socket."""
         self._state = state
         log.info("%s", detail or state.value, extra={"nox_state": state.value})
-        await self._state_server.set_state(state, detail)
+        await self._state_server.set_state(
+            state, detail, user_text=user_text, assistant_text=assistant_text
+        )
 
     async def _on_agent_tool_use(self, tool_name: str) -> None:
         """Called from agent when x11-mcp tool is used."""
@@ -132,9 +140,15 @@ class Daemon:
                 log.debug("Recording too short, returning to idle")
                 break
 
-            # Process: transcribe + send to Claude
-            await self._set_state(State.PROCESSING)
-            response = await self._process(audio)
+            # Transcribe audio
+            text = self._transcriber.transcribe(audio)
+            log.info("Transcribed: %s", text)
+            if not text.strip():
+                break
+
+            # Process: send to Claude
+            await self._set_state(State.PROCESSING, user_text=text)
+            response = await self._process_text(text)
 
             if response is None:
                 break
@@ -144,7 +158,7 @@ class Daemon:
                 self._media.pause()
 
             # Speak response
-            await self._set_state(State.SPEAKING, detail=f"{len(response)} chars")
+            await self._set_state(State.SPEAKING, detail=f"{len(response)} chars", assistant_text=response)
             await asyncio.get_event_loop().run_in_executor(None, self._speaker.speak, response)
 
             # Check if we should listen for follow-up
@@ -217,14 +231,8 @@ class Daemon:
 
         return np.concatenate(self._audio_buffer)
 
-    async def _process(self, audio: np.ndarray) -> str | None:
-        """Transcribe audio and send to Claude agent. Returns response text or None."""
-        text = self._transcriber.transcribe(audio)
-        log.info("Transcribed: %s", text)
-
-        if not text.strip():
-            return None
-
+    async def _process_text(self, text: str) -> str | None:
+        """Send transcribed text to Claude agent. Returns response text or None."""
         try:
             response = await self._agent.send(text)
             log.info("Claude response: %s", response[:200])

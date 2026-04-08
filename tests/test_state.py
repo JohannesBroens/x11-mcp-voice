@@ -88,3 +88,39 @@ async def test_state_server_handles_client_disconnect(tmp_path):
 
     await server.set_state(State.SPEAKING)
     await server.stop()
+
+
+@pytest.mark.asyncio
+async def test_state_server_broadcasts_user_text(tmp_path):
+    sock_path = str(tmp_path / "nox.sock")
+    server = StateServer(sock_path)
+    await server.start()
+    reader, writer = await asyncio.open_unix_connection(sock_path)
+    await reader.readline()  # consume initial state
+    await server.set_state(State.PROCESSING, user_text="hello world")
+    line = await asyncio.wait_for(reader.readline(), timeout=2.0)
+    msg = json.loads(line)
+    assert msg["state"] == "cogito"
+    assert msg["user_text"] == "hello world"
+    assert "assistant_text" not in msg
+    writer.close()
+    await writer.wait_closed()
+    await server.stop()
+
+
+@pytest.mark.asyncio
+async def test_state_server_broadcasts_assistant_text(tmp_path):
+    sock_path = str(tmp_path / "nox.sock")
+    server = StateServer(sock_path)
+    await server.start()
+    reader, writer = await asyncio.open_unix_connection(sock_path)
+    await reader.readline()  # consume initial state
+    await server.set_state(State.SPEAKING, assistant_text="I opened Firefox")
+    line = await asyncio.wait_for(reader.readline(), timeout=2.0)
+    msg = json.loads(line)
+    assert msg["state"] == "dico"
+    assert msg["assistant_text"] == "I opened Firefox"
+    assert "user_text" not in msg
+    writer.close()
+    await writer.wait_closed()
+    await server.stop()

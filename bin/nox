@@ -8,6 +8,7 @@
 #   nox restart      Restart daemon (tray reconnects)
 #   nox status       Show current state
 #   nox log          Tail the log file
+#   nox chat         Open terminal chat TUI
 #   nox install      Enable systemd autostart
 #   nox uninstall    Disable systemd autostart
 #
@@ -123,6 +124,10 @@ cmd_install() {
     echo "  Start now with: nox"
 }
 
+cmd_chat() {
+    exec "$PROJECT_DIR/.venv/bin/python" -m x11_mcp_voice.chat
+}
+
 cmd_uninstall() {
     systemctl --user stop "$TRAY_SERVICE" 2>/dev/null || true
     systemctl --user stop "$SERVICE" 2>/dev/null || true
@@ -137,10 +142,11 @@ case "${1:-}" in
     restart)    cmd_restart ;;
     status)     cmd_status ;;
     log)        cmd_log ;;
+    chat)       cmd_chat ;;
     install)    cmd_install ;;
     uninstall)  cmd_uninstall ;;
     *)
-        echo "Usage: nox [start|stop|restart|status|log|install|uninstall]"
+        echo "Usage: nox [start|stop|restart|status|log|chat|install|uninstall]"
         exit 1
         ;;
 esac

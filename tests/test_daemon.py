@@ -47,30 +47,21 @@ def test_on_wake_transitions_to_listening(daemon):
 
 
 @pytest.mark.asyncio
-async def test_process_records_and_transcribes(daemon):
-    daemon._transcriber = MagicMock()
-    daemon._transcriber.transcribe.return_value = "hello claude"
+async def test_process_text_sends_to_agent(daemon):
     daemon._agent = AsyncMock()
     daemon._agent.send = AsyncMock(return_value="Hi there!")
-    daemon._speaker = MagicMock()
 
-    # Simulate recorded audio
-    audio = np.zeros(16000, dtype=np.float32)
-    result = await daemon._process(audio)
+    result = await daemon._process_text("hello claude")
 
     assert result == "Hi there!"
-    daemon._transcriber.transcribe.assert_called_once()
     daemon._agent.send.assert_called_once_with("hello claude")
 
 
 @pytest.mark.asyncio
-async def test_process_empty_transcription_skips_agent(daemon):
-    daemon._transcriber = MagicMock()
-    daemon._transcriber.transcribe.return_value = ""
+async def test_process_text_error_returns_fallback(daemon):
     daemon._agent = AsyncMock()
+    daemon._agent.send = AsyncMock(side_effect=RuntimeError("boom"))
 
-    audio = np.zeros(16000, dtype=np.float32)
-    result = await daemon._process(audio)
+    result = await daemon._process_text("hello claude")
 
-    assert result is None
-    daemon._agent.send.assert_not_called()
+    assert result == "I couldn't process that. Try again."
