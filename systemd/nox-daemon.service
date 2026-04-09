@@ -5,6 +5,7 @@ Wants=pulseaudio.service
 
 [Service]
 Type=simple
+WorkingDirectory=%h/Documents/git/x11-mcp-voice
 ExecStart=%h/Documents/git/x11-mcp-voice/.venv/bin/python -m x11_mcp_voice
 Restart=on-failure
 RestartSec=5
