@@ -37,7 +37,9 @@ def test_load_config_from_yaml(tmp_path):
     assert cfg.tts.voice == "en_US-ryan-medium"
 
 
-def test_load_config_no_file():
+def test_load_config_no_file(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)  # ensure no config.yaml in cwd
+    monkeypatch.setenv("HOME", str(tmp_path))  # ensure no ~/.config fallback
     cfg = load_config(None)
     assert cfg.wake_word.model == "hey_jarvis"
 
