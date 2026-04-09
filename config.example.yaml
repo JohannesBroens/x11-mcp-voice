@@ -3,8 +3,8 @@
 # All values shown are defaults — only override what you want to change.
 
 wake_word:
-  model: "hey_jarvis"           # openwakeword model name
-  threshold: 0.7                # detection confidence (0.0-1.0)
+  model: "hey_nox"              # "hey_nox" (custom) or "hey_jarvis" (default openwakeword)
+  threshold: 0.5                # detection confidence (0.0-1.0)
 
 stt:
   model: "nvidia/parakeet-tdt-0.6b-v2"

@@ -7,14 +7,18 @@ build/
 .pytest_cache/
 *.wav
 *.mp3
-models/
+models/*.bin
+models/*.pt
 .worktrees/
 config.yaml
 .claude/
 .superpowers/
 
-# Development artifacts — design specs, plans, and AI session context.
-# These contain personal setup details and implementation history.
+# Development artifacts
 CLAUDE.md
 docs/superpowers/
 docs/design-brief.md
+
+# Wake word training data (large, user-specific)
+training/
+wake_word_samples/

@@ -55,10 +55,16 @@ class WakeWordDetector:
         """Background thread: stream mic audio, detect wake word."""
         import openwakeword
         from openwakeword.model import Model
+        from pathlib import Path
 
-        # Download/load model
-        openwakeword.utils.download_models([self._model_name])
-        oww_model = Model(wakeword_models=[self._model_name], inference_framework="onnx")
+        # Check if model is a custom .onnx file path or a pre-trained model name
+        custom_model = Path(__file__).parent.parent.parent / "models" / f"{self._model_name}.onnx"
+        if custom_model.exists():
+            log.info("Loading custom wake word model: %s", custom_model)
+            oww_model = Model(wakeword_models=[str(custom_model)], inference_framework="onnx")
+        else:
+            openwakeword.utils.download_models([self._model_name])
+            oww_model = Model(wakeword_models=[self._model_name], inference_framework="onnx")
 
         try:
             with sd.InputStream(
