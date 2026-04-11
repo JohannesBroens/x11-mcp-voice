@@ -55,6 +55,18 @@ def test_load_config_partial_section(tmp_path):
     assert cfg.audio.max_recording_s == 30
 
 
+def test_chat_config_defaults():
+    cfg = Config()
+    assert cfg.chat.text_input is False
+
+
+def test_chat_config_from_yaml(tmp_path):
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text("chat:\n  text_input: true\n")
+    cfg = load_config(str(config_file))
+    assert cfg.chat.text_input is True
+
+
 def test_service_config_defaults():
     cfg = Config()
     assert cfg.service.autostart is False

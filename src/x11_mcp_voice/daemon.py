@@ -11,7 +11,7 @@ from x11_mcp_voice.agent import Agent
 from x11_mcp_voice.config import Config
 from x11_mcp_voice.media_control import MediaController
 from x11_mcp_voice.speaker import Speaker
-from x11_mcp_voice.state import State, StateServer
+from x11_mcp_voice.state import InputServer, State, StateServer
 from x11_mcp_voice.transcriber import Transcriber
 from x11_mcp_voice.transcript import rotate, save_message
 from x11_mcp_voice.wake_word import WakeWordDetector
@@ -38,6 +38,11 @@ class Daemon:
             import os
             socket_path = f"/run/user/{os.getuid()}/nox.sock"
         self._state_server = StateServer(socket_path)
+
+        # Text input from chat TUI
+        input_socket = socket_path.replace("nox.sock", "nox-input.sock")
+        self._input_server = InputServer(input_socket)
+        self._text_input_queue: asyncio.Queue[str] = asyncio.Queue()
 
         # Components
         self._wake_detector = WakeWordDetector(
@@ -73,6 +78,7 @@ class Daemon:
         # Connect to x11-mcp
         await self._agent.connect()
         await self._state_server.start()
+        await self._input_server.start(self._on_text_input)
 
         # Start wake word detection
         self._wake_detector.start(
@@ -84,9 +90,24 @@ class Daemon:
 
         try:
             while True:
-                await self._wake_event.wait()
-                self._wake_event.clear()
-                await self._handle_interaction()
+                # Wait for either wake word or text input
+                wake_task = asyncio.create_task(self._wake_event.wait())
+                text_task = asyncio.create_task(self._text_input_queue.get())
+
+                done, pending = await asyncio.wait(
+                    {wake_task, text_task},
+                    return_when=asyncio.FIRST_COMPLETED,
+                )
+
+                for t in pending:
+                    t.cancel()
+
+                if text_task in done:
+                    text = text_task.result()
+                    await self._handle_text_interaction(text)
+                else:
+                    self._wake_event.clear()
+                    await self._handle_interaction()
         except asyncio.CancelledError:
             pass
         finally:
@@ -103,6 +124,32 @@ class Daemon:
             self._loop.call_soon_threadsafe(self._wake_event.set)
         else:
             self._wake_event.set()
+
+    async def _on_text_input(self, text: str) -> None:
+        """Called when text input arrives from chat TUI via InputServer."""
+        await self._text_input_queue.put(text)
+
+    async def _handle_text_interaction(self, text: str) -> None:
+        """Handle a text input interaction (skip wake word + recording)."""
+        try:
+            self._agent.check_timeout(self._config.conversation.session_timeout_s)
+            save_message("user", text)
+            await self._set_state(State.PROCESSING, user_text=text)
+            response = await self._process_text(text)
+            if response:
+                save_message("assistant", response)
+                if self._config.media.auto_pause:
+                    self._media.pause()
+                await self._set_state(State.SPEAKING, assistant_text=response)
+                await asyncio.get_event_loop().run_in_executor(
+                    None, self._speaker.speak, response
+                )
+        except Exception:
+            log.exception("Text interaction failed")
+        finally:
+            await self._set_state(State.IDLE)
+            if self._config.media.auto_pause:
+                self._media.resume()
 
     def _on_audio_chunk(self, chunk: np.ndarray) -> None:
         """Called from wake word thread for every audio chunk."""
@@ -175,6 +222,20 @@ class Daemon:
             log.info("Transcribed: %s", text)
             if not text.strip():
                 break
+
+            # Proofread mode: show transcription, wait for edit or timeout
+            if self._config.conversation.proofread:
+                await self._state_server.broadcast_event({
+                    "type": "proofread", "text": text,
+                })
+                try:
+                    edited = await asyncio.wait_for(
+                        self._text_input_queue.get(), timeout=10.0,
+                    )
+                    text = edited  # use the edited version
+                    log.info("Proofread edited: %s", text)
+                except asyncio.TimeoutError:
+                    log.debug("Proofread timeout — using original transcription")
 
             # Persist user message
             save_message("user", text)
@@ -318,6 +379,7 @@ class Daemon:
 
     async def _cleanup(self) -> None:
         """Clean up all resources."""
+        await self._input_server.stop()
         await self._state_server.stop()
         self._wake_detector.stop()
         await self._agent.disconnect()

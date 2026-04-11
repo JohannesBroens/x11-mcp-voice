@@ -56,6 +56,11 @@ class ConversationConfig:
 
 
 @dataclass
+class ChatConfig:
+    text_input: bool = False
+
+
+@dataclass
 class ServiceConfig:
     autostart: bool = False
     chat_autostart: bool = True
@@ -72,6 +77,7 @@ class Config:
     agent: AgentConfig = field(default_factory=AgentConfig)
     audio: AudioConfig = field(default_factory=AudioConfig)
     conversation: ConversationConfig = field(default_factory=ConversationConfig)
+    chat: ChatConfig = field(default_factory=ChatConfig)
     service: ServiceConfig = field(default_factory=ServiceConfig)
 
 
@@ -83,6 +89,7 @@ _SECTION_CLASSES = {
     "agent": AgentConfig,
     "audio": AudioConfig,
     "conversation": ConversationConfig,
+    "chat": ChatConfig,
     "service": ServiceConfig,
 }
 

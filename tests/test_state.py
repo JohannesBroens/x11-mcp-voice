@@ -109,6 +109,65 @@ async def test_state_server_broadcasts_user_text(tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_input_server_start_stop(tmp_path):
+    from x11_mcp_voice.state import InputServer
+    sock_path = str(tmp_path / "nox-input.sock")
+    server = InputServer(sock_path)
+    await server.start(callback=lambda text: None)
+    assert os.path.exists(sock_path)
+    await server.stop()
+
+
+@pytest.mark.asyncio
+async def test_input_server_receives_text(tmp_path):
+    from x11_mcp_voice.state import InputServer
+    import socket as sock
+    sock_path = str(tmp_path / "nox-input.sock")
+    received = []
+
+    async def on_text(text):
+        received.append(text)
+
+    server = InputServer(sock_path)
+    await server.start(callback=on_text)
+
+    # Send text via raw socket
+    s = sock.socket(sock.AF_UNIX, sock.SOCK_STREAM)
+    s.connect(sock_path)
+    s.sendall(b"hello world\n")
+    s.close()
+
+    # Give the server time to process
+    await asyncio.sleep(0.1)
+
+    assert received == ["hello world"]
+    await server.stop()
+
+
+@pytest.mark.asyncio
+async def test_input_server_ignores_blank_lines(tmp_path):
+    from x11_mcp_voice.state import InputServer
+    import socket as sock
+    sock_path = str(tmp_path / "nox-input.sock")
+    received = []
+
+    async def on_text(text):
+        received.append(text)
+
+    server = InputServer(sock_path)
+    await server.start(callback=on_text)
+
+    s = sock.socket(sock.AF_UNIX, sock.SOCK_STREAM)
+    s.connect(sock_path)
+    s.sendall(b"\n\nactual text\n\n")
+    s.close()
+
+    await asyncio.sleep(0.1)
+    assert received == ["actual text"]
+    await server.stop()
+
+
+@pytest.mark.asyncio
 async def test_state_server_broadcasts_assistant_text(tmp_path):
     sock_path = str(tmp_path / "nox.sock")
     server = StateServer(sock_path)

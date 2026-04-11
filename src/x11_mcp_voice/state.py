@@ -120,3 +120,49 @@ class StateServer:
                 dead.append(writer)
         for writer in dead:
             self._clients.remove(writer)
+
+
+class InputServer:
+    """Async Unix socket server that receives text input from chat clients.
+
+    Listens on a separate socket from StateServer. When a line of text
+    arrives, the registered async callback is invoked with the text.
+    """
+
+    def __init__(self, socket_path: str):
+        self._socket_path = socket_path
+        self._callback = None
+        self._server: asyncio.AbstractServer | None = None
+
+    async def start(self, callback) -> None:
+        """Start listening. *callback(text: str)* is awaited when text arrives."""
+        import os
+        if os.path.exists(self._socket_path):
+            os.unlink(self._socket_path)
+        self._callback = callback
+        self._server = await asyncio.start_unix_server(
+            self._handle, path=self._socket_path
+        )
+        log.info("InputServer listening on %s", self._socket_path)
+
+    async def _handle(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+        """Handle a single client connection — read lines until EOF."""
+        try:
+            while True:
+                line = await reader.readline()
+                if not line:
+                    break
+                text = line.decode().strip()
+                if text and self._callback:
+                    await self._callback(text)
+        finally:
+            writer.close()
+
+    async def stop(self) -> None:
+        if self._server:
+            self._server.close()
+            await self._server.wait_closed()
+        import os
+        if os.path.exists(self._socket_path):
+            os.unlink(self._socket_path)
+        log.info("InputServer stopped")

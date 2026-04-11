@@ -21,6 +21,7 @@ def daemon(config):
          patch("x11_mcp_voice.daemon.MediaController"), \
          patch("x11_mcp_voice.daemon.Agent"), \
          patch("x11_mcp_voice.daemon.StateServer"), \
+         patch("x11_mcp_voice.daemon.InputServer"), \
          patch("x11_mcp_voice.daemon.rotate"):
         d = Daemon(config)
     return d
@@ -112,3 +113,59 @@ async def test_handle_interaction_resets_walkie_talkie_on_exception(daemon):
         await daemon._handle_interaction()
 
     daemon._agent.reset.assert_called_once()
+
+
+def test_daemon_has_input_server(daemon):
+    assert hasattr(daemon, '_input_server')
+
+
+def test_daemon_has_text_input_queue(daemon):
+    assert hasattr(daemon, '_text_input_queue')
+
+
+@pytest.mark.asyncio
+async def test_on_text_input_puts_to_queue(daemon):
+    daemon._text_input_queue = asyncio.Queue()
+    await daemon._on_text_input("hello from chat")
+    assert daemon._text_input_queue.qsize() == 1
+    assert daemon._text_input_queue.get_nowait() == "hello from chat"
+
+
+@pytest.mark.asyncio
+async def test_handle_text_interaction_processes_and_speaks(daemon):
+    """Text interaction should send to agent, save transcript, and speak."""
+    daemon._agent = MagicMock()
+    daemon._agent.check_timeout = MagicMock()
+    daemon._agent.send = AsyncMock(return_value="Got it!")
+    daemon._media = MagicMock()
+    daemon._speaker = MagicMock()
+    daemon._state_server = AsyncMock()
+    daemon._config.media.auto_pause = False
+
+    with patch("x11_mcp_voice.daemon.save_message") as save_mock:
+        await daemon._handle_text_interaction("open firefox")
+
+    # Agent should have received the text
+    daemon._agent.send.assert_called_once_with("open firefox")
+    # Speaker should have spoken the response
+    daemon._speaker.speak.assert_called_once_with("Got it!")
+    # Transcript should be saved for both user and assistant
+    assert save_mock.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_handle_text_interaction_returns_to_idle(daemon):
+    """Text interaction must return to IDLE even on error."""
+    daemon._agent = MagicMock()
+    daemon._agent.check_timeout = MagicMock(side_effect=RuntimeError("boom"))
+    daemon._media = MagicMock()
+    daemon._speaker = MagicMock()
+    daemon._state_server = AsyncMock()
+    daemon._config.media.auto_pause = False
+
+    # Should not raise — errors are caught
+    await daemon._handle_text_interaction("test")
+
+    # Last state broadcast should be IDLE
+    last_call = daemon._state_server.set_state.call_args_list[-1]
+    assert last_call[0][0] == State.IDLE
