@@ -22,6 +22,7 @@ from rich.table import Table
 from rich.text import Text
 
 from x11_mcp_voice.config import load_config
+from x11_mcp_voice.transcript import load_recent
 
 log = logging.getLogger(__name__)
 
@@ -239,7 +240,10 @@ class NoxChat:
         self._socket_path = socket_path
         self._current_state = "somnus"
         self._connected = False
-        self._messages: list[dict] = []
+        self._messages: list[dict] = [
+            {"role": m["role"], "text": m["text"], "time": m.get("time", "")}
+            for m in load_recent(50)
+        ]
         self._max_messages = 50
         self._frame = 0
 
