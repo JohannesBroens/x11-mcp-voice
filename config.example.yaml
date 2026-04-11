@@ -56,6 +56,8 @@ audio:
   sample_rate: 16000            # Hz (don't change — Parakeet expects 16kHz)
   silence_threshold_ms: 500     # ms of silence to stop recording
   max_recording_s: 30           # max seconds per utterance
+  vad_threshold: 0.6            # Silero VAD speech probability (0.0-1.0, higher = less noise)
+  min_speech_s: 0.5             # minimum recording duration to accept (seconds)
   input_device: null            # null = system default, or device index/name
   output_device: null           # null = system default, or device index/name
 

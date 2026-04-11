@@ -219,7 +219,7 @@ class Daemon:
         while True:
             # Record audio
             audio = await self._record()
-            if audio is None or len(audio) < self._config.audio.sample_rate * 0.3:
+            if audio is None or len(audio) < self._config.audio.sample_rate * self._config.audio.min_speech_s:
                 # Too short — probably noise
                 if is_followup:
                     break  # No follow-up, end interaction
@@ -325,7 +325,7 @@ class Daemon:
 
             # Check latest chunk for speech
             latest = self._audio_buffer[-1]
-            is_speech = _check_vad(vad_model, latest)
+            is_speech = _check_vad(vad_model, latest, self._config.audio.vad_threshold)
 
             if is_speech:
                 speech_started = True
@@ -370,7 +370,7 @@ class Daemon:
             await asyncio.sleep(0.08)
             if self._audio_buffer:
                 latest = self._audio_buffer[-1]
-                if _check_vad(vad_model, latest):
+                if _check_vad(vad_model, latest, self._config.audio.vad_threshold):
                     detected = True
                     break
 
@@ -413,7 +413,7 @@ def _load_silero_vad():
     return _silero_vad
 
 
-def _check_vad(model, audio_chunk: np.ndarray) -> bool:
+def _check_vad(model, audio_chunk: np.ndarray, threshold: float = 0.6) -> bool:
     """Check if audio chunk contains speech using silero VAD."""
     import torch
     tensor = torch.from_numpy(audio_chunk).float()
@@ -424,4 +424,4 @@ def _check_vad(model, audio_chunk: np.ndarray) -> bool:
     if tensor.shape[0] > 512:
         tensor = tensor[-512:]
     speech_prob = model(tensor, 16000).item()
-    return speech_prob > 0.5
+    return speech_prob > threshold

@@ -41,6 +41,8 @@ class AudioConfig:
     sample_rate: int = 16000
     silence_threshold_ms: int = 500
     max_recording_s: int = 30
+    vad_threshold: float = 0.6  # Silero VAD speech probability threshold (0.0-1.0)
+    min_speech_s: float = 0.5   # minimum recording duration to accept (seconds)
     input_device: int | str | None = None   # mic device index or name, null = system default
     output_device: int | str | None = None  # speaker device index or name, null = system default
 
