@@ -29,7 +29,10 @@ audio:
 
 conversation:
   style: "auto"                 # "auto" | "confirmations" | "walkie_talkie"
-  followup_timeout_s: 3.0       # seconds to wait for follow-up speech
+  followup_timeout_question_s: 5.0    # when Nox asks you a question
+  followup_timeout_statement_s: 2.0   # when Nox makes a statement
+  session_timeout_s: 300              # reset conversation after 5 min idle
+  proofread: false                    # show transcription for editing before sending
 
 service:
   autostart: false            # enable systemd autostart on install
