@@ -26,6 +26,8 @@ audio:
   sample_rate: 16000            # Hz (don't change — Parakeet expects 16kHz)
   silence_threshold_ms: 500     # ms of silence to stop recording
   max_recording_s: 30           # max seconds per utterance
+  input_device: null            # null = system default, or device index/name
+  output_device: null           # null = system default, or device index/name
 
 conversation:
   style: "auto"                 # "auto" | "confirmations" | "walkie_talkie"

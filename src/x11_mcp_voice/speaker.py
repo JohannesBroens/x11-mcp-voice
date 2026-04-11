@@ -96,7 +96,7 @@ class PiperBackend(TTSBackend):
 class Speaker:
     """Text-to-speech with pluggable backend (Kokoro or Piper)."""
 
-    def __init__(self, engine: str = "kokoro", voice: str = "af_heart", speed: float = 1.0):
+    def __init__(self, engine: str = "kokoro", voice: str = "af_heart", speed: float = 1.0, output_device=None):
         if engine == "kokoro":
             try:
                 self._backend = KokoroBackend(voice, speed)
@@ -106,6 +106,7 @@ class Speaker:
         else:
             self._backend = PiperBackend(voice, speed)
 
+        self._output_device = output_device
         self._stop_event = threading.Event()
         self._playing = False
 
@@ -142,5 +143,5 @@ class Speaker:
             if self._stop_event.is_set():
                 return
             chunk = audio[i : i + chunk_size]
-            sd.play(chunk, samplerate=sample_rate)
+            sd.play(chunk, samplerate=sample_rate, device=self._output_device)
             sd.wait()

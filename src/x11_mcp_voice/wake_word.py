@@ -17,9 +17,10 @@ _SAMPLE_RATE = 16000
 class WakeWordDetector:
     """Always-on wake word detection via openwakeword on a background thread."""
 
-    def __init__(self, model: str = "hey_jarvis", threshold: float = 0.7):
+    def __init__(self, model: str = "hey_jarvis", threshold: float = 0.7, input_device=None):
         self._model_name = model
         self._threshold = threshold
+        self._input_device = input_device
         self._thread: threading.Thread | None = None
         self._stop_event = threading.Event()
         self._on_wake: Callable[[], None] | None = None
@@ -72,6 +73,7 @@ class WakeWordDetector:
                 channels=1,
                 dtype="int16",
                 blocksize=_CHUNK_SAMPLES,
+                device=self._input_device,
             ) as stream:
                 while not self._stop_event.is_set():
                     audio_chunk, overflowed = stream.read(_CHUNK_SAMPLES)

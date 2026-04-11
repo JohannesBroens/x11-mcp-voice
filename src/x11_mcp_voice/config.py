@@ -41,6 +41,8 @@ class AudioConfig:
     sample_rate: int = 16000
     silence_threshold_ms: int = 500
     max_recording_s: int = 30
+    input_device: int | str | None = None   # mic device index or name, null = system default
+    output_device: int | str | None = None  # speaker device index or name, null = system default
 
 
 @dataclass

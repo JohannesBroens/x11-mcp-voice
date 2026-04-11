@@ -43,6 +43,7 @@ class Daemon:
         self._wake_detector = WakeWordDetector(
             model=config.wake_word.model,
             threshold=config.wake_word.threshold,
+            input_device=config.audio.input_device,
         )
         self._transcriber = Transcriber(
             model_name=config.stt.model,
@@ -52,6 +53,7 @@ class Daemon:
             engine=config.tts.engine,
             voice=config.tts.voice,
             speed=config.tts.speed,
+            output_device=config.audio.output_device,
         )
         self._media = MediaController(player=config.media.player)
         self._agent = Agent(config.agent, config.conversation,
@@ -121,9 +123,11 @@ class Daemon:
             state, detail, user_text=user_text, assistant_text=assistant_text
         )
 
-    async def _on_agent_tool_use(self, tool_name: str) -> None:
+    async def _on_agent_tool_use(self, event: dict) -> None:
         """Called from agent when x11-mcp tool is used."""
+        tool_name = event.get("tool", "unknown")
         await self._set_state(State.CONTROLLING, detail=f"x11-mcp: {tool_name}")
+        await self._state_server.broadcast_event(event)
 
     async def _handle_interaction(self) -> None:
         """Handle a complete interaction: listen -> process -> speak, with follow-up loop.
