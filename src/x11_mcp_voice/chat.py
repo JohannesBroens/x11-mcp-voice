@@ -276,6 +276,14 @@ class NoxChat:
                 "time": datetime.now().strftime("%H:%M:%S"),
             })
 
+        # Proofread events — show transcription for editing
+        if msg.get("type") == "proofread":
+            self._messages.append({
+                "role": "system",
+                "text": f"[Heard: {msg['text']}] (edit via 'nox send' or wait 10s)",
+                "time": datetime.now().strftime("%H:%M:%S"),
+            })
+
         # Trim to max
         if len(self._messages) > self._max_messages:
             self._messages = self._messages[-self._max_messages:]
@@ -377,7 +385,7 @@ class NoxChat:
         # Footer: 1 line. Transcript gets the rest.
         transcript_lines = max(console_height - 12, 5)
         transcript = self._render_transcript(max_lines=transcript_lines)
-        footer = Text("Ctrl+C to exit", style="dim", justify="center")
+        footer = Text("Ctrl+C to exit | nox send <text> to type", style="dim", justify="center")
 
         return Group(
             Panel(header, border_style="dim", padding=(1, 1)),

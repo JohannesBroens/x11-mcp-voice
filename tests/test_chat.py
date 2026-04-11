@@ -84,3 +84,17 @@ def test_faces_alt_subset_of_faces():
     from x11_mcp_voice.chat import FACES, FACES_ALT
     for state in FACES_ALT:
         assert state in FACES, f"FACES_ALT has {state} but FACES does not"
+
+
+def test_on_message_handles_proofread_event():
+    from x11_mcp_voice.chat import NoxChat
+    chat = NoxChat.__new__(NoxChat)
+    chat._current_state = "ausculto"
+    chat._messages = []
+    chat._connected = True
+    chat._max_messages = 50
+    chat._on_message({"type": "proofread", "text": "open fire fox", "timestamp": 123})
+    assert len(chat._messages) == 1
+    assert chat._messages[0]["role"] == "system"
+    assert "Heard: open fire fox" in chat._messages[0]["text"]
+    assert "nox send" in chat._messages[0]["text"]
