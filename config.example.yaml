@@ -11,7 +11,8 @@ stt:
   device: "cuda"                # "cuda" or "cpu"
 
 tts:
-  voice: "en_US-ryan-medium"    # piper voice model name (must be downloaded)
+  engine: "kokoro"              # "kokoro" (neural, natural) or "piper" (lightweight, robotic)
+  voice: "af_heart"             # Kokoro: af_heart, af_bella, bf_emma, etc. Piper: en_US-ryan-medium
   speed: 1.0
 
 media:

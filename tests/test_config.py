@@ -7,7 +7,8 @@ def test_default_config():
     assert cfg.wake_word.threshold == 0.7
     assert cfg.stt.model == "nvidia/parakeet-tdt-0.6b-v2"
     assert cfg.stt.device == "cuda"
-    assert cfg.tts.voice == "en_US-ryan-medium"
+    assert cfg.tts.engine == "kokoro"
+    assert cfg.tts.voice == "af_heart"
     assert cfg.tts.speed == 1.0
     assert cfg.media.auto_pause is True
     assert cfg.media.player is None
@@ -34,7 +35,7 @@ def test_load_config_from_yaml(tmp_path):
     assert cfg.conversation.style == "walkie_talkie"
     # Unspecified fields keep defaults
     assert cfg.stt.model == "nvidia/parakeet-tdt-0.6b-v2"
-    assert cfg.tts.voice == "en_US-ryan-medium"
+    assert cfg.tts.voice == "af_heart"
 
 
 def test_load_config_no_file(tmp_path, monkeypatch):

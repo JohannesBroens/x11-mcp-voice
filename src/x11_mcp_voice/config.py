@@ -20,7 +20,8 @@ class STTConfig:
 
 @dataclass
 class TTSConfig:
-    voice: str = "en_US-ryan-medium"
+    engine: str = "kokoro"  # "kokoro" or "piper"
+    voice: str = "af_heart"
     speed: float = 1.0
 
 
@@ -46,6 +47,10 @@ class AudioConfig:
 class ConversationConfig:
     style: str = "auto"
     followup_timeout_s: float = 3.0
+    followup_timeout_question_s: float = 5.0
+    followup_timeout_statement_s: float = 2.0
+    session_timeout_s: float = 300.0
+    proofread: bool = False
 
 
 @dataclass

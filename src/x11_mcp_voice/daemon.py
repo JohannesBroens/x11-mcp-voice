@@ -13,6 +13,7 @@ from x11_mcp_voice.media_control import MediaController
 from x11_mcp_voice.speaker import Speaker
 from x11_mcp_voice.state import State, StateServer
 from x11_mcp_voice.transcriber import Transcriber
+from x11_mcp_voice.transcript import rotate, save_message
 from x11_mcp_voice.wake_word import WakeWordDetector
 
 log = logging.getLogger(__name__)
@@ -48,6 +49,7 @@ class Daemon:
             device=config.stt.device,
         )
         self._speaker = Speaker(
+            engine=config.tts.engine,
             voice=config.tts.voice,
             speed=config.tts.speed,
         )
@@ -62,6 +64,9 @@ class Daemon:
         # Handle shutdown signals
         for sig in (signal.SIGINT, signal.SIGTERM):
             self._loop.add_signal_handler(sig, self._shutdown)
+
+        # Rotate old transcript entries
+        rotate(keep_days=7)
 
         # Connect to x11-mcp
         await self._agent.connect()
@@ -121,7 +126,26 @@ class Daemon:
         await self._set_state(State.CONTROLLING, detail=f"x11-mcp: {tool_name}")
 
     async def _handle_interaction(self) -> None:
-        """Handle a complete interaction: listen -> process -> speak, with follow-up loop."""
+        """Handle a complete interaction: listen -> process -> speak, with follow-up loop.
+
+        Wraps the inner logic in try/finally to guarantee media resumes
+        and state returns to IDLE even if an exception occurs.
+        """
+        try:
+            await self._handle_interaction_inner()
+        finally:
+            # ALWAYS resume media, even if an exception occurred
+            await self._set_state(State.IDLE)
+            if self._config.media.auto_pause:
+                self._media.resume()
+            if self._config.conversation.style == "walkie_talkie":
+                self._agent.reset()
+
+    async def _handle_interaction_inner(self) -> None:
+        """Core interaction logic: listen -> process -> speak, with follow-up loop."""
+        # Reset stale session before starting
+        self._agent.check_timeout(self._config.conversation.session_timeout_s)
+
         await self._set_state(State.WAKE)
         await self._set_state(State.LISTENING)
 
@@ -148,12 +172,18 @@ class Daemon:
             if not text.strip():
                 break
 
+            # Persist user message
+            save_message("user", text)
+
             # Process: send to Claude
             await self._set_state(State.PROCESSING, user_text=text)
             response = await self._process_text(text)
 
             if response is None:
                 break
+
+            # Persist assistant response
+            save_message("assistant", response)
 
             # Pause media before speaking so TTS is audible
             if self._config.media.auto_pause:
@@ -175,9 +205,15 @@ class Daemon:
                 self._media.resume()
 
             # Wait for follow-up speech (VAD-based)
+            # Use longer timeout when Claude asked a question
+            if response.rstrip().endswith("?"):
+                timeout = self._config.conversation.followup_timeout_question_s
+            else:
+                timeout = self._config.conversation.followup_timeout_statement_s
+
             await self._set_state(State.LISTENING, detail="follow-up window")
             is_followup = True
-            has_speech = await self._wait_for_speech(self._config.conversation.followup_timeout_s)
+            has_speech = await self._wait_for_speech(timeout)
             if not has_speech:
                 break
 
@@ -185,15 +221,6 @@ class Daemon:
             if self._config.media.auto_pause:
                 self._media.pause()
                 await asyncio.sleep(0.3)
-
-        # End of interaction
-        await self._set_state(State.IDLE)
-        if self._config.media.auto_pause:
-            self._media.resume()
-
-        # Reset conversation in walkie_talkie mode
-        if self._config.conversation.style == "walkie_talkie":
-            self._agent.reset()
 
     async def _record(self) -> np.ndarray | None:
         """Record audio until silence detected. Returns audio buffer as numpy array."""

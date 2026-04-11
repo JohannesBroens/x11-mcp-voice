@@ -133,6 +133,7 @@ pip install --no-deps openwakeword -q
 info "Installing x11-mcp-voice and remaining dependencies (torch/NeMo are large)..."
 pip install -e "$SCRIPT_DIR[dev]" --no-deps 2>&1 | tail -5
 pip install onnxruntime "sounddevice>=0.5.0" "numpy>=1.24.0" PyYAML \
+    "kokoro-onnx>=0.4.0" "soundfile>=0.12.0" \
     "piper-tts>=1.2.0" "nemo_toolkit[asr]>=2.0.0" "torch>=2.0.0" "torchaudio>=2.0.0" \
     "pytest>=7.0.0" "pytest-asyncio>=0.23.0" "pystray>=0.19.0" "Pillow>=10.0.0" 2>&1 | tail -5
 
@@ -184,7 +185,20 @@ else
 fi
 
 # ─────────────────────────────────────────────────
-# Step 8: Pre-download Parakeet STT model
+# Step 8: Pre-download Kokoro TTS model
+# ─────────────────────────────────────────────────
+info "Pre-downloading Kokoro TTS model (~350MB)..."
+
+python -c "
+from kokoro_onnx import Kokoro
+k = Kokoro('kokoro-v1.0.onnx', 'voices-v1.0.bin')
+print('Kokoro TTS model downloaded successfully')
+" 2>&1 | grep -E "(Kokoro|Download|download|Error|error)" || true
+
+ok "Kokoro TTS model ready"
+
+# ─────────────────────────────────────────────────
+# Step 9: Pre-download Parakeet STT model
 # ─────────────────────────────────────────────────
 info "Pre-downloading Parakeet STT model (nvidia/parakeet-tdt-0.6b-v2)..."
 info "  This is ~1.5GB and may take a few minutes on first run."
@@ -198,7 +212,7 @@ print('Parakeet model downloaded successfully')
 ok "Parakeet STT model ready"
 
 # ─────────────────────────────────────────────────
-# Step 9: Pre-download Silero VAD model
+# Step 10: Pre-download Silero VAD model
 # ─────────────────────────────────────────────────
 info "Pre-downloading Silero VAD model..."
 
@@ -211,7 +225,7 @@ print('Silero VAD downloaded successfully')
 ok "Silero VAD model ready"
 
 # ─────────────────────────────────────────────────
-# Step 10: Pre-download openwakeword model
+# Step 11: Pre-download openwakeword model
 # ─────────────────────────────────────────────────
 info "Pre-downloading openwakeword model: hey_jarvis..."
 
@@ -224,7 +238,7 @@ print('OpenWakeWord model downloaded successfully')
 ok "OpenWakeWord model ready"
 
 # ─────────────────────────────────────────────────
-# Step 11: Run tests
+# Step 12: Run tests
 # ─────────────────────────────────────────────────
 info "Running test suite..."
 
@@ -235,7 +249,7 @@ else
 fi
 
 # ─────────────────────────────────────────────────
-# Step 12: Install Nox service
+# Step 13: Install Nox service
 # ─────────────────────────────────────────────────
 info "Installing Nox service..."
 
@@ -286,7 +300,7 @@ fi
 ok "Nox service installed"
 
 # ─────────────────────────────────────────────────
-# Step 13: Verify hardware
+# Step 14: Verify hardware
 # ─────────────────────────────────────────────────
 info "Checking audio hardware..."
 

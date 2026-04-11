@@ -249,4 +249,4 @@ def test_config_loads_custom_wake_word(tmp_path):
     assert cfg.wake_word.threshold == 0.5
     # Unrelated defaults are unchanged.
     assert cfg.stt.model == "nvidia/parakeet-tdt-0.6b-v2"
-    assert cfg.tts.voice == "en_US-ryan-medium"
+    assert cfg.tts.voice == "af_heart"

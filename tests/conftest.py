@@ -12,6 +12,7 @@ _STUB_MODULES = [
     "nemo",
     "nemo.collections",
     "nemo.collections.asr",
+    "kokoro_onnx",
     "piper",
     "torch",
     "pystray",
