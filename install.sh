@@ -344,3 +344,11 @@ echo ""
 echo "  Voice models directory: $VOICES_DIR/"
 echo "  Logs: ~/.local/log/nox/daemon.log"
 echo ""
+
+# Offer interactive setup
+echo ""
+read -p "  Run interactive setup? (y/n) " -n 1 -r
+echo ""
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    python -m x11_mcp_voice.onboard
+fi

@@ -10,6 +10,7 @@
 #   nox log          Tail the log file
 #   nox chat         Open terminal chat TUI
 #   nox send <text>  Send text input to daemon (skip wake word + mic)
+#   nox setup        Interactive setup wizard (voice, style, name)
 #   nox install      Enable systemd autostart + chat window
 #   nox uninstall    Disable autostart
 #
@@ -224,6 +225,10 @@ print('true' if c.service.chat_autostart else 'false')
     echo "  Start now with: nox"
 }
 
+cmd_setup() {
+    exec "$PROJECT_DIR/.venv/bin/python" -m x11_mcp_voice.onboard
+}
+
 cmd_uninstall() {
     systemctl --user stop "$TRAY_SERVICE" 2>/dev/null || true
     systemctl --user stop "$SERVICE" 2>/dev/null || true
@@ -242,10 +247,11 @@ case "${1:-}" in
     chat)       cmd_chat ;;
     send)       shift; cmd_send "$@" ;;
     context)    cmd_context ;;
+    setup)      cmd_setup ;;
     install)    cmd_install ;;
     uninstall)  cmd_uninstall ;;
     *)
-        echo "Usage: nox [start|stop|restart|status|log|chat|send|context|install|uninstall]"
+        echo "Usage: nox [start|stop|restart|status|log|chat|send|context|setup|install|uninstall]"
         exit 1
         ;;
 esac
