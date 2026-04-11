@@ -146,13 +146,20 @@ def main() -> None:
         _speak(f"Nice to meet you, {name}!", voice=choices["voice"])
     console.print()
 
-    # Step 5: Save config
-    console.print("[bold]Step 5:[/] Saving your preferences...")
+    # Step 5: System context
+    from x11_mcp_voice.system_context import detect_system_context
+    ctx = detect_system_context()
+    console.print("[bold]Step 5:[/] Your system")
+    console.print(ctx)
+    console.print()
+
+    # Step 6: Save config
+    console.print("[bold]Step 6:[/] Saving your preferences...")
     _save_config(choices)
     _save_context(choices)
     console.print()
 
-    # Step 6: Ready
+    # Step 7: Ready
     console.print(Panel(
         Text("Setup complete!", style="bold green", justify="center"),
         border_style="green",

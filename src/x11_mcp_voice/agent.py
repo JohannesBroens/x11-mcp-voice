@@ -7,6 +7,7 @@ import re
 import time
 
 from x11_mcp_voice.config import AgentConfig, ConversationConfig
+from x11_mcp_voice.system_context import detect_system_context
 
 log = logging.getLogger(__name__)
 
@@ -21,6 +22,9 @@ Voice interaction:
 {style_instruction}
 
 {user_context}
+
+Desktop environment (auto-detected):
+{system_context}
 
 When executing desktop tasks:
 1. Take a screenshot first to see what's on screen
@@ -58,7 +62,11 @@ _STYLE_INSTRUCTIONS = {
         "For example: 'Do you want me to continue?' or 'Should I open that app?'. "
         "Keep questions simple so they're easy to answer by voice."
     ),
-    "walkie_talkie": "Each message from the user is a standalone command. Be direct and concise.",
+    "walkie_talkie": (
+        "Each message from the user is a standalone command. Do NOT ask follow-up questions — "
+        "the user must say the wake word again to send another message. Be direct and complete "
+        "in your response. If you need clarification, state what you assumed instead of asking."
+    ),
 }
 
 
@@ -108,9 +116,11 @@ class Agent:
 
         style_instruction = _STYLE_INSTRUCTIONS.get(self._style, _STYLE_INSTRUCTIONS["auto"])
         user_context = _load_user_context()
+        system_context = detect_system_context()
         self._system = _SYSTEM_PROMPT.format(
             style_instruction=style_instruction,
             user_context=user_context,
+            system_context=system_context,
         )
 
     async def connect(self) -> None:
