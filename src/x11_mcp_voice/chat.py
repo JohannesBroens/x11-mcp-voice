@@ -73,20 +73,20 @@ FACE_FRAMES: dict[str, list[tuple[str, list[str]]]] = {
             "   \\________/   ",
         ]),
     ],
-    # Excito: 2-frame startle wobble — mouth flips, ! flickers
+    # Excito: 2-frame startle wobble — wide eyes, mouth flips
     "excito": [
         ("bold yellow", [
             "    ________    ",
             "   /   !!   \\   ",
-            "  /  @    @  \\  ",
-            "  \\    oO    /  ",
+            "  /  O    O  \\  ",
+            "  \\    o     /  ",
             "   \\________/   ",
         ]),
         ("bold yellow", [
             "    ________    ",
             "   /   !    \\   ",
-            "  /  @    @  \\  ",
-            "  \\    Oo    /  ",
+            "  /  O    O  \\  ",
+            "  \\    O     /  ",
             "   \\________/   ",
         ]),
     ],
@@ -162,20 +162,20 @@ FACE_FRAMES: dict[str, list[tuple[str, list[str]]]] = {
             "   \\________/   ",
         ]),
     ],
-    # Impero: 2-frame menace pulse — cursor twitches, smirk shifts
+    # Impero: 2-frame focus pulse — determined but friendly
     "impero": [
         ("bold orange_red1", [
             "    ________    ",
             "   /   >>   \\   ",
-            "  /  >    <  \\  ",
-            "  \\    J     /  ",
+            "  /  o    o  \\  ",
+            "  \\    u     /  ",
             "   \\________/   ",
         ]),
         ("orange_red1", [
             "    ________    ",
             "   /   }>   \\   ",
-            "  /  >    <  \\  ",
-            "  \\    j     /  ",
+            "  /  o    o  \\  ",
+            "  \\    -     /  ",
             "   \\________/   ",
         ]),
     ],
