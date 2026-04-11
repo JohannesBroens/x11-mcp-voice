@@ -20,7 +20,8 @@ def daemon(config):
          patch("x11_mcp_voice.daemon.Speaker"), \
          patch("x11_mcp_voice.daemon.MediaController"), \
          patch("x11_mcp_voice.daemon.Agent"), \
-         patch("x11_mcp_voice.daemon.StateServer"):
+         patch("x11_mcp_voice.daemon.StateServer"), \
+         patch("x11_mcp_voice.daemon.rotate"):
         d = Daemon(config)
     return d
 
@@ -65,3 +66,49 @@ async def test_process_text_error_returns_fallback(daemon):
     result = await daemon._process_text("hello claude")
 
     assert "RuntimeError" in result
+
+
+@pytest.mark.asyncio
+async def test_handle_interaction_resumes_media_on_exception(daemon):
+    """Media must resume even if _handle_interaction_inner raises an exception."""
+    daemon._agent = MagicMock()
+    daemon._agent.check_timeout = MagicMock()
+    daemon._agent.reset = MagicMock()
+    daemon._media = MagicMock()
+    daemon._state_server = AsyncMock()
+    daemon._config.media.auto_pause = True
+    daemon._config.conversation.style = "auto"
+
+    # Make the inner method raise
+    async def boom():
+        raise RuntimeError("test explosion")
+
+    daemon._handle_interaction_inner = boom
+
+    with pytest.raises(RuntimeError, match="test explosion"):
+        await daemon._handle_interaction()
+
+    # Media must have been resumed despite the exception
+    daemon._media.resume.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_handle_interaction_resets_walkie_talkie_on_exception(daemon):
+    """In walkie_talkie mode, agent.reset() is called even on exception."""
+    daemon._agent = MagicMock()
+    daemon._agent.check_timeout = MagicMock()
+    daemon._agent.reset = MagicMock()
+    daemon._media = MagicMock()
+    daemon._state_server = AsyncMock()
+    daemon._config.media.auto_pause = False
+    daemon._config.conversation.style = "walkie_talkie"
+
+    async def boom():
+        raise RuntimeError("test explosion")
+
+    daemon._handle_interaction_inner = boom
+
+    with pytest.raises(RuntimeError, match="test explosion"):
+        await daemon._handle_interaction()
+
+    daemon._agent.reset.assert_called_once()
