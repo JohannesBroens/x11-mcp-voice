@@ -178,3 +178,40 @@ async def test_agent_send_error_fallback(agent_config, conversation_config):
         result = await agent.send("do something")
 
     assert result == "I couldn't process that. Try again."
+
+
+def test_load_user_context_no_file(tmp_path, monkeypatch):
+    """Returns empty string when file doesn't exist."""
+    monkeypatch.setattr("x11_mcp_voice.agent._USER_CONTEXT_PATH", str(tmp_path / "missing.txt"))
+    from x11_mcp_voice.agent import _load_user_context
+    assert _load_user_context() == ""
+
+
+def test_load_user_context_with_comments(tmp_path, monkeypatch):
+    """Comment lines (starting with #) should be filtered out."""
+    ctx = tmp_path / "context.txt"
+    ctx.write_text("# This is a comment\nMy name is Alex\n# Another comment\nI like Python\n")
+    monkeypatch.setattr("x11_mcp_voice.agent._USER_CONTEXT_PATH", str(ctx))
+    from x11_mcp_voice.agent import _load_user_context
+    result = _load_user_context()
+    assert "comment" not in result.lower()
+    assert "My name is Alex" in result
+    assert "I like Python" in result
+
+
+def test_load_user_context_empty_file(tmp_path, monkeypatch):
+    """Empty file should return empty string."""
+    ctx = tmp_path / "context.txt"
+    ctx.write_text("")
+    monkeypatch.setattr("x11_mcp_voice.agent._USER_CONTEXT_PATH", str(ctx))
+    from x11_mcp_voice.agent import _load_user_context
+    assert _load_user_context() == ""
+
+
+def test_load_user_context_only_comments(tmp_path, monkeypatch):
+    """File with only comments should return empty string."""
+    ctx = tmp_path / "context.txt"
+    ctx.write_text("# comment 1\n# comment 2\n")
+    monkeypatch.setattr("x11_mcp_voice.agent._USER_CONTEXT_PATH", str(ctx))
+    from x11_mcp_voice.agent import _load_user_context
+    assert _load_user_context() == ""

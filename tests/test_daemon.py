@@ -169,3 +169,25 @@ async def test_handle_text_interaction_returns_to_idle(daemon):
     # Last state broadcast should be IDLE
     last_call = daemon._state_server.set_state.call_args_list[-1]
     assert last_call[0][0] == State.IDLE
+
+
+@pytest.mark.asyncio
+async def test_handle_interaction_always_returns_to_idle(daemon):
+    """After any interaction (even with no audio), state should return to IDLE."""
+    daemon._state_server = AsyncMock()
+    daemon._media = MagicMock()
+    daemon._media.pause.return_value = False
+    daemon._agent = MagicMock()
+    daemon._agent.check_timeout = MagicMock()
+    daemon._agent.reset = MagicMock()
+    daemon._config.media.auto_pause = False
+    daemon._config.conversation.style = "auto"
+
+    # Make _handle_interaction_inner complete without doing anything
+    daemon._handle_interaction_inner = AsyncMock()
+
+    await daemon._handle_interaction()
+
+    # Must end in IDLE
+    last_call = daemon._state_server.set_state.call_args_list[-1]
+    assert last_call[0][0] == State.IDLE
