@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import threading
+import time
 from collections.abc import Callable
 
 import numpy as np
@@ -25,6 +26,7 @@ class WakeWordDetector:
         self._stop_event = threading.Event()
         self._on_wake: Callable[[], None] | None = None
         self._audio_callback: Callable[[np.ndarray], None] | None = None
+        self._last_trigger_time: float = 0.0  # debounce: prevent multi-fire
 
     def start(
         self,
@@ -93,6 +95,12 @@ class WakeWordDetector:
 
                     for model_name, score in prediction.items():
                         if score >= self._threshold:
+                            # Debounce: skip if we triggered recently (prevents multi-fire)
+                            now = time.monotonic()
+                            if now - self._last_trigger_time < 3.0:
+                                continue
+                            self._last_trigger_time = now
+
                             log.info("Wake word detected: %s (score=%.3f)", model_name, score)
                             oww_model.reset()
                             if self._on_wake:

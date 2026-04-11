@@ -198,8 +198,10 @@ class Daemon:
             await self._set_state(State.IDLE)
             if self._config.media.auto_pause:
                 self._media.resume()
-            if self._config.conversation.style == "walkie_talkie":
-                self._agent.reset()
+            # In walkie_talkie mode, DON'T reset the agent — keep session memory.
+            # The session timeout (default 5 min) handles cleanup instead.
+            # This lets the user ask follow-up questions in separate wake-word
+            # triggered turns while maintaining conversation context.
 
     async def _handle_interaction_inner(self) -> None:
         """Core interaction logic: listen -> process -> speak, with follow-up loop."""

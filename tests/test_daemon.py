@@ -94,8 +94,8 @@ async def test_handle_interaction_resumes_media_on_exception(daemon):
 
 
 @pytest.mark.asyncio
-async def test_handle_interaction_resets_walkie_talkie_on_exception(daemon):
-    """In walkie_talkie mode, agent.reset() is called even on exception."""
+async def test_handle_interaction_keeps_session_in_walkie_talkie(daemon):
+    """In walkie_talkie mode, session is NOT reset — memory persists via timeout."""
     daemon._agent = MagicMock()
     daemon._agent.check_timeout = MagicMock()
     daemon._agent.reset = MagicMock()
@@ -112,7 +112,8 @@ async def test_handle_interaction_resets_walkie_talkie_on_exception(daemon):
     with pytest.raises(RuntimeError, match="test explosion"):
         await daemon._handle_interaction()
 
-    daemon._agent.reset.assert_called_once()
+    # Session should NOT be reset — walkie_talkie preserves memory
+    daemon._agent.reset.assert_not_called()
 
 
 def test_daemon_has_input_server(daemon):
