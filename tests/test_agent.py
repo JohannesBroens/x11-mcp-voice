@@ -120,7 +120,7 @@ async def test_agent_send_first_call_no_resume(agent_config, conversation_config
 
 @pytest.mark.asyncio
 async def test_agent_session_resume(agent_config, conversation_config):
-    """Second invocation resumes the session with --resume --session-id."""
+    """Second invocation resumes the session with --resume <session-id>."""
     agent = Agent(agent_config, conversation_config)
     agent._session_id = "sess-existing"
 
@@ -138,8 +138,7 @@ async def test_agent_session_resume(agent_config, conversation_config):
 
     assert result == "Yes, I can do that."
     call_args = mock_exec.call_args[0]
-    assert "--resume" in call_args
-    idx = call_args.index("--session-id")
+    idx = call_args.index("--resume")
     assert call_args[idx + 1] == "sess-existing"
 
 

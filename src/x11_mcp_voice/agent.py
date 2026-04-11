@@ -153,8 +153,9 @@ class Agent:
 
         # Resume existing session for multi-turn context.
         # First call starts fresh; subsequent calls resume the session.
+        # --resume takes the session ID directly (not via --session-id)
         if self._session_id:
-            cmd.extend(["--resume", "--session-id", self._session_id])
+            cmd.extend(["--resume", self._session_id])
 
         # User message as positional argument
         cmd.append(text)
