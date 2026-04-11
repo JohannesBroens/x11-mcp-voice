@@ -119,11 +119,20 @@ class Daemon:
         Uses call_soon_threadsafe when a real asyncio event loop is available
         to safely schedule the event set from a background thread. Falls back
         to direct set otherwise (e.g. in tests with a mock loop).
+
+        If the daemon is currently speaking or controlling the desktop,
+        the wake word acts as an interrupt — TTS is stopped immediately
+        so the user can issue a new command.
         """
         if isinstance(self._loop, asyncio.AbstractEventLoop):
             self._loop.call_soon_threadsafe(self._wake_event.set)
         else:
             self._wake_event.set()
+
+        # Interrupt TTS if speaking
+        if self._state in (State.SPEAKING, State.CONTROLLING):
+            self._speaker.stop()
+            log.info("Wake word interrupt — stopping current action")
 
     async def _on_text_input(self, text: str) -> None:
         """Called when text input arrives from chat TUI via InputServer."""
