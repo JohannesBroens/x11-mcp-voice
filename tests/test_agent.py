@@ -1,4 +1,5 @@
 import json
+import time
 import pytest
 from unittest.mock import AsyncMock, patch
 
@@ -92,16 +93,42 @@ async def test_agent_send_walkie_talkie_no_session(agent_config):
 
 
 @pytest.mark.asyncio
-async def test_agent_send_always_fresh_session(agent_config, conversation_config):
-    """Each invocation is stateless — no --resume flag, always --no-session-persistence."""
+async def test_agent_send_first_call_no_resume(agent_config, conversation_config):
+    """First invocation starts fresh — no --resume flag."""
     agent = Agent(agent_config, conversation_config)
-    agent._session_id = "existing-session"
+    assert agent._session_id is None
+
+    result_event = json.dumps({
+        "type": "result",
+        "subtype": "success",
+        "result": "Hello!",
+        "session_id": "sess-first",
+    })
+
+    mock_proc = _mock_subprocess([result_event])
+
+    with patch("x11_mcp_voice.agent.asyncio.create_subprocess_exec", return_value=mock_proc) as mock_exec:
+        result = await agent.send("hi")
+
+    assert result == "Hello!"
+    call_args = mock_exec.call_args[0]
+    assert "--resume" not in call_args
+    assert "--session-id" not in call_args
+    assert "--no-session-persistence" not in call_args
+    assert agent._session_id == "sess-first"
+
+
+@pytest.mark.asyncio
+async def test_agent_session_resume(agent_config, conversation_config):
+    """Second invocation resumes the session with --resume --session-id."""
+    agent = Agent(agent_config, conversation_config)
+    agent._session_id = "sess-existing"
 
     result_event = json.dumps({
         "type": "result",
         "subtype": "success",
         "result": "Yes, I can do that.",
-        "session_id": "new-session",
+        "session_id": "sess-existing",
     })
 
     mock_proc = _mock_subprocess([result_event])
@@ -111,8 +138,32 @@ async def test_agent_send_always_fresh_session(agent_config, conversation_config
 
     assert result == "Yes, I can do that."
     call_args = mock_exec.call_args[0]
-    assert "--no-session-persistence" in call_args
-    assert "--resume" not in call_args
+    assert "--resume" in call_args
+    idx = call_args.index("--session-id")
+    assert call_args[idx + 1] == "sess-existing"
+
+
+def test_agent_session_timeout(agent_config, conversation_config):
+    """Session resets when idle longer than timeout."""
+    agent = Agent(agent_config, conversation_config)
+    agent._session_id = "sess-old"
+    agent._last_interaction_time = time.monotonic() - 400  # 400s ago
+
+    agent.check_timeout(300.0)
+
+    assert agent._session_id is None
+    assert agent._last_interaction_time is None
+
+
+def test_agent_session_no_timeout_when_fresh(agent_config, conversation_config):
+    """Session is kept when still within timeout window."""
+    agent = Agent(agent_config, conversation_config)
+    agent._session_id = "sess-recent"
+    agent._last_interaction_time = time.monotonic() - 60  # 60s ago
+
+    agent.check_timeout(300.0)
+
+    assert agent._session_id == "sess-recent"
 
 
 @pytest.mark.asyncio

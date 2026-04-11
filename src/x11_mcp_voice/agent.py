@@ -4,6 +4,7 @@ import asyncio
 import json
 import logging
 import re
+import time
 
 from x11_mcp_voice.config import AgentConfig, ConversationConfig
 
@@ -101,6 +102,7 @@ class Agent:
         self._model = agent_config.model
         self._style = conversation_config.style
         self._session_id: str | None = None
+        self._last_interaction_time: float | None = None
         self._messages: list[dict] = []
         self._state_callback = state_callback
 
@@ -122,7 +124,16 @@ class Agent:
     def reset(self) -> None:
         """Clear conversation state so next send() starts a fresh session."""
         self._session_id = None
+        self._last_interaction_time = None
         self._messages = []
+
+    def check_timeout(self, timeout_s: float) -> None:
+        """Reset session if idle longer than *timeout_s* seconds."""
+        if self._session_id and self._last_interaction_time:
+            elapsed = time.monotonic() - self._last_interaction_time
+            if elapsed > timeout_s:
+                log.info("Session timed out after %.0fs, resetting", elapsed)
+                self.reset()
 
     async def send(self, text: str) -> str:
         """Send text to Claude Code via subprocess, return response text.
@@ -140,10 +151,10 @@ class Agent:
             "--permission-mode", "bypassPermissions",
         ]
 
-        # Each invocation is a fresh session. --resume with --no-session-persistence
-        # doesn't work reliably, so we always start fresh. Multi-turn context is
-        # provided via the system prompt instead.
-        cmd.append("--no-session-persistence")
+        # Resume existing session for multi-turn context.
+        # First call starts fresh; subsequent calls resume the session.
+        if self._session_id:
+            cmd.extend(["--resume", "--session-id", self._session_id])
 
         # User message as positional argument
         cmd.append(text)
@@ -221,6 +232,7 @@ class Agent:
 
         if session_id and self._style != "walkie_talkie":
             self._session_id = session_id
+            self._last_interaction_time = time.monotonic()
 
         self._messages.append({"role": "assistant", "content": result_text})
         return _clean_for_speech(result_text)
