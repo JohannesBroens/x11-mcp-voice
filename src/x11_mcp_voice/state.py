@@ -103,6 +103,13 @@ class StateServer:
             data["assistant_text"] = assistant_text
         return json.dumps(data).encode() + b"\n"
 
+    async def broadcast_event(self, event: dict) -> None:
+        """Broadcast a generic event (tool use, thinking, etc.) to clients."""
+        import time as _time
+        event.setdefault("timestamp", int(_time.time()))
+        msg = json.dumps(event).encode() + b"\n"
+        await self._broadcast(msg)
+
     async def _broadcast(self, msg: bytes) -> None:
         dead: list[asyncio.StreamWriter] = []
         for writer in self._clients:

@@ -267,6 +267,15 @@ class NoxChat:
                 "time": datetime.now().strftime("%H:%M:%S"),
             })
 
+        # Tool use events
+        if msg.get("type") == "tool_use":
+            tool = msg.get("tool", "unknown")
+            self._messages.append({
+                "role": "system",
+                "text": f"[{tool}]",
+                "time": datetime.now().strftime("%H:%M:%S"),
+            })
+
         # Trim to max
         if len(self._messages) > self._max_messages:
             self._messages = self._messages[-self._max_messages:]
@@ -342,7 +351,10 @@ class NoxChat:
 
             for i, msg in enumerate(messages):
                 ts = msg["time"]
-                if msg["role"] == "user":
+                if msg["role"] == "system":
+                    text.append(f"  {ts}  ", style="dim")
+                    text.append(f"{msg['text']}\n", style="dim italic")
+                elif msg["role"] == "user":
                     text.append(f"  {ts}  ", style="dim")
                     text.append("You\n", style="bold cyan")
                     text.append(f"  {msg['text']}\n", style="white")

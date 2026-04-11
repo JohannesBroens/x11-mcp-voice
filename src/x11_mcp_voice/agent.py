@@ -204,7 +204,11 @@ class Agent:
                     elif block.get("type") == "tool_use" and self._state_callback:
                         tool_name = block.get("name", "")
                         if "x11" in tool_name or "mcp" in tool_name:
-                            await self._state_callback(tool_name)
+                            await self._state_callback({
+                                "type": "tool_use",
+                                "tool": tool_name,
+                                "input_preview": str(block.get("input", {}))[:100],
+                            })
 
             elif event_type == "result":
                 result_text = event.get("result", "")
