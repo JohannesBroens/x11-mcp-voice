@@ -45,13 +45,28 @@ class TTSBackend:
         pass
 
 
+_KOKORO_DIR = Path.home() / ".local" / "share" / "kokoro"
+
+
 class KokoroBackend(TTSBackend):
-    """Kokoro-82M neural TTS. Models auto-download on first run (~350MB)."""
+    """Kokoro-82M neural TTS. Requires model files in ~/.local/share/kokoro/."""
 
     def __init__(self, voice: str = "af_heart", speed: float = 1.0):
         from kokoro_onnx import Kokoro
 
-        self._kokoro = Kokoro("kokoro-v1.0.onnx", "voices-v1.0.bin")
+        model_path = _KOKORO_DIR / "kokoro-v1.0.onnx"
+        voices_path = _KOKORO_DIR / "voices-v1.0.bin"
+
+        if not model_path.exists() or not voices_path.exists():
+            raise FileNotFoundError(
+                f"Kokoro model files not found in {_KOKORO_DIR}. "
+                "Run install.sh or download manually: "
+                "wget -P ~/.local/share/kokoro/ "
+                "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/kokoro-v1.0.onnx "
+                "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/voices-v1.0.bin"
+            )
+
+        self._kokoro = Kokoro(str(model_path), str(voices_path))
         self._voice = voice
         self._speed = speed
         log.info("Kokoro TTS initialized (voice=%s)", voice)

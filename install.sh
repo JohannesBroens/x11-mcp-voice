@@ -187,15 +187,19 @@ fi
 # ─────────────────────────────────────────────────
 # Step 8: Pre-download Kokoro TTS model
 # ─────────────────────────────────────────────────
-info "Pre-downloading Kokoro TTS model (~350MB)..."
+KOKORO_DIR="$HOME/.local/share/kokoro"
+mkdir -p "$KOKORO_DIR"
 
-python -c "
-from kokoro_onnx import Kokoro
-k = Kokoro('kokoro-v1.0.onnx', 'voices-v1.0.bin')
-print('Kokoro TTS model downloaded successfully')
-" 2>&1 | grep -E "(Kokoro|Download|download|Error|error)" || true
+KOKORO_BASE="https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0"
 
-ok "Kokoro TTS model ready"
+if [[ -f "$KOKORO_DIR/kokoro-v1.0.onnx" ]] && [[ -f "$KOKORO_DIR/voices-v1.0.bin" ]]; then
+    ok "Kokoro TTS model already downloaded"
+else
+    info "Downloading Kokoro TTS model (~350MB)..."
+    curl -L -# -o "$KOKORO_DIR/kokoro-v1.0.onnx" "$KOKORO_BASE/kokoro-v1.0.onnx"
+    curl -L -# -o "$KOKORO_DIR/voices-v1.0.bin" "$KOKORO_BASE/voices-v1.0.bin"
+    ok "Kokoro TTS model downloaded to $KOKORO_DIR/"
+fi
 
 # ─────────────────────────────────────────────────
 # Step 9: Pre-download Parakeet STT model
