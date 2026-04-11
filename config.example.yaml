@@ -12,8 +12,38 @@ stt:
 
 tts:
   engine: "kokoro"              # "kokoro" (neural, natural) or "piper" (lightweight, robotic)
-  voice: "af_heart"             # Kokoro: af_heart, af_bella, bf_emma, etc. Piper: en_US-ryan-medium
+  voice: "af_heart"             # Default: best quality female voice (see options below)
   speed: 1.0
+  # Available Kokoro voices (prefix = gender + accent):
+  #   af_ = American female, am_ = American male
+  #   bf_ = British female,  bm_ = British male
+  #
+  # Female American:
+  #   af_heart (A)     — warm, clear, best quality (default)
+  #   af_bella (A-)    — soft, expressive
+  #   af_sarah         — neutral, professional
+  #   af_nova          — bright, energetic
+  #   af_sky           — light, airy
+  #   af_nicole        — calm, measured
+  #
+  # Female British:
+  #   bf_emma          — classic British RP
+  #   bf_isabella      — warm, conversational
+  #   bf_alice         — clear, precise
+  #   bf_lily          — gentle, soft-spoken
+  #
+  # Male American:
+  #   am_adam          — deep, authoritative
+  #   am_michael       — friendly, natural
+  #   am_liam          — young, casual
+  #
+  # Male British:
+  #   bm_george        — classic British male
+  #   bm_daniel        — warm, measured
+  #   bm_fable         — storyteller quality
+  #
+  # Grade indicates voice quality: A = best training data, A- = very good
+  # For Piper engine: use e.g. "en_US-ryan-medium" or "en_US-lessac-medium"
 
 media:
   auto_pause: true              # pause media on wake, resume when done
@@ -35,6 +65,9 @@ conversation:
   followup_timeout_statement_s: 2.0   # when Nox makes a statement
   session_timeout_s: 300              # reset conversation after 5 min idle
   proofread: false                    # show transcription for editing before sending
+
+chat:
+  text_input: false             # enable text input via input socket (used by 'nox send')
 
 service:
   autostart: false            # enable systemd autostart on install
